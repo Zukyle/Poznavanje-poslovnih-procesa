@@ -28,7 +28,7 @@ uses
   FireDAC.DApt,
   Data.DB,
   FireDAC.Comp.DataSet,
-  FireDAC.Comp.Client;
+  FireDAC.Comp.Client, Vcl.Imaging.pngimage;
 
 type
   TfraNoviZahtev = class(TFrame)
@@ -42,7 +42,6 @@ type
     pnlForma: TPanel;
 
     lblDetaljiZahteva: TLabel;
-    Label2: TLabel;
 
     lblKategorija: TLabel;
     lblMaterijal: TLabel;
@@ -68,6 +67,13 @@ type
     memRazlog: TMemo;
 
     btnPosaljiZahtev: TButton;
+    Image1: TImage;
+    lblDetaljiNaslov: TLabel;
+    Bevel2: TBevel;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    procedure lblDetaljiNaslovClick(Sender: TObject);
 
   private
 
@@ -201,6 +207,11 @@ begin
 
 end;
 
+
+procedure TfraNoviZahtev.lblDetaljiNaslovClick(Sender: TObject);
+begin
+
+end;
 
 // ============================================================
 // UČITAVANJE KATEGORIJA

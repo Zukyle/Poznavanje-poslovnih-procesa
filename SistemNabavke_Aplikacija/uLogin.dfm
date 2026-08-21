@@ -1,7 +1,9 @@
 object frmLogin: TfrmLogin
   Left = 0
   Top = 0
-  Caption = 'Log in'
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 's'
   ClientHeight = 400
   ClientWidth = 600
   Color = clBtnFace

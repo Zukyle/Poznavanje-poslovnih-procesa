@@ -1,6 +1,8 @@
 object frmGlavna: TfrmGlavna
   Left = 0
   Top = 0
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
   Caption = 'Sistem Nabavke'
   ClientHeight = 821
   ClientWidth = 1200
