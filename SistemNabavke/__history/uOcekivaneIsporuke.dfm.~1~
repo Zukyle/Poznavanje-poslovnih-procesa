@@ -1,0 +1,7 @@
+object fraOcekivaneIsporuke: TfraOcekivaneIsporuke
+  Left = 0
+  Top = 0
+  Width = 980
+  Height = 700
+  TabOrder = 0
+end

@@ -1,0 +1,1331 @@
+﻿unit uGlavna;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.ExtCtrls,
+  Vcl.Buttons;
+
+type
+  TfrmGlavna = class(TForm)
+
+    pnlNavigacija: TPanel;
+    pnlSadrzaj: TPanel;
+
+    btnDashboard: TSpeedButton;
+
+    btnNoviZahtev: TSpeedButton;
+    btnMojiZahtevi: TSpeedButton;
+    btnAktivneNabavke: TSpeedButton;
+
+    btnZahteviOdobrenje: TSpeedButton;
+    btnSviZahtevi: TSpeedButton;
+
+    btnOdobreniZahtevi: TSpeedButton;
+    btnDobavljaci: TSpeedButton;
+    btnPonude: TSpeedButton;
+    btnNarudzbenice: TSpeedButton;
+
+    btnOcekivaneIsporuke: TSpeedButton;
+    btnPrijemRobe: TSpeedButton;
+    btnMagacin: TSpeedButton;
+
+    btnKorisnici: TSpeedButton;
+    btnMaterijali: TSpeedButton;
+    btnOsnovniPodaci: TSpeedButton;
+
+    btnOdjava: TSpeedButton;
+
+    Panel2: TPanel;
+
+    procedure btnOdjavaClick(Sender: TObject);
+
+    procedure btnNoviZahtevClick(Sender: TObject);
+    procedure btnMojiZahteviClick(Sender: TObject);
+
+    procedure btnZahteviOdobrenjeClick(Sender: TObject);
+    procedure btnSviZahteviClick(Sender: TObject);
+
+    procedure btnOdobreniZahteviClick(Sender: TObject);
+    procedure btnDobavljaciClick(Sender: TObject);
+
+    // NOVO - PONUDE
+    procedure btnPonudeClick(Sender: TObject);
+
+    procedure btnNarudzbeniceClick(Sender: TObject);
+    procedure btnAktivneNabavkeClick(Sender: TObject);
+    procedure btnOcekivaneIsporukeClick(Sender: TObject);
+    procedure btnPrijemRobeClick(Sender: TObject);
+    procedure btnMagacinClick(Sender: TObject); // NOVO
+    procedure btnKorisniciClick(Sender: TObject); // NOVO
+    procedure btnMaterijaliClick(Sender: TObject); // NOVO
+    procedure btnOsnovniPodaciClick(Sender: TObject); // NOVO
+    procedure btnDashboardClick(Sender: TObject); // NOVO
+
+
+
+    procedure FormClose(
+      Sender: TObject;
+      var Action: TCloseAction
+    );
+
+  private
+
+    FKorisnikID: Integer;
+    FKorisnickoIme: string;
+    FImeKorisnika: string;
+    FUloga: string;
+
+    // ====================================================
+    // FRAME-OVI
+    // ====================================================
+
+    FFraNoviZahtev: TFrame;
+    FFraMojiZahtevi: TFrame;
+
+    FFraZahteviOdobrenje: TFrame;
+    FFraSviZahtevi: TFrame;
+
+    FFraOdobreniZahtevi: TFrame;
+    FFraDobavljaci: TFrame;
+
+    FFraPonude: TFrame;
+    FFraNarudzbenice: TFrame;
+    FFraAktivneNabavke: TFrame;
+    FFraOcekivaneIsporuke: TFrame;
+    FFraPrijemRobe: TFrame;
+    FFraMagacin: TFrame; // NOVO
+    FFraKorisnici: TFrame; // NOVO
+    FFraMaterijali: TFrame; // NOVO
+    FFraOsnovniPodaci: TFrame; // NOVO
+    FFraDashboard: TFrame; // NOVO
+
+    procedure SakrijSveOpcije;
+    procedure PrimeniPravaPristupa;
+    procedure SakrijSveFrameove;
+
+  public
+
+    procedure PrijaviKorisnika(
+      AKorisnikID: Integer;
+      const AKorisnickoIme: string;
+      const AImeKorisnika: string;
+      const AUloga: string
+    );
+
+    // NOVO
+    procedure OtvoriPonudeZaZahtev(
+      AZahtevID: Integer
+    );
+
+    // NOVO
+    procedure OtvoriPrijemRobeZaNarudzbenicu(
+      ANarudzbenicaID: Integer
+    );
+
+        // NOVO
+    procedure OtvoriNarudzbeniceZaZahtev(AZahtevID: Integer);
+
+  end;
+
+var
+  frmGlavna: TfrmGlavna;
+
+implementation
+
+uses
+  uLogin,
+  uNoviZahtev,
+  uMojiZahtevi,
+  uZahteviOdobrenje,
+  uSviZahtevi,
+  uOdobreniZahtevi,
+  uDobavljaci,
+
+  // NOVO
+  uPonude,
+  uNarudzbenice,
+  uAktivneNabavke,
+  uOcekivaneIsporuke,
+  uPrijemRobe,
+  uMagacin,
+  uKorisnici,
+  uMaterijali,
+  uOsnovniPodaci,
+  uDashboard;
+
+{$R *.dfm}
+
+
+// ======================================================
+// SAKRIVANJE SVIH FRAME-OVA
+// ======================================================
+
+procedure TfrmGlavna.SakrijSveFrameove;
+var
+  I: Integer;
+begin
+
+  for I := 0 to pnlSadrzaj.ControlCount - 1 do
+  begin
+
+    if pnlSadrzaj.Controls[I] is TFrame then
+      pnlSadrzaj.Controls[I].Visible := False;
+
+  end;
+
+end;
+
+
+// ======================================================
+// SAKRIVANJE SVIH OPCIJA
+// ======================================================
+
+procedure TfrmGlavna.SakrijSveOpcije;
+begin
+
+  btnDashboard.Visible := False;
+
+  // PODNOSILAC
+  btnNoviZahtev.Visible := False;
+  btnMojiZahtevi.Visible := False;
+  btnAktivneNabavke.Visible := False;
+
+  // MENADZER
+  btnZahteviOdobrenje.Visible := False;
+  btnSviZahtevi.Visible := False;
+
+  // NABAVKA
+  btnOdobreniZahtevi.Visible := False;
+  btnDobavljaci.Visible := False;
+  btnPonude.Visible := False;
+  btnNarudzbenice.Visible := False;
+
+  // MAGACIONER
+  btnOcekivaneIsporuke.Visible := False;
+  btnPrijemRobe.Visible := False;
+  btnMagacin.Visible := False;
+
+  // ADMINISTRATOR
+  btnKorisnici.Visible := False;
+  btnMaterijali.Visible := False;
+  btnOsnovniPodaci.Visible := False;
+
+end;
+
+
+// ======================================================
+// PRAVA PRISTUPA
+// ======================================================
+
+procedure TfrmGlavna.PrimeniPravaPristupa;
+begin
+
+  SakrijSveOpcije;
+
+
+  // Dashboard vidi svako
+  btnDashboard.Visible := True;
+
+
+  // ====================================================
+  // PODNOSILAC
+  // ====================================================
+
+  if SameText(FUloga, 'Podnosilac') then
+  begin
+
+    btnNoviZahtev.Visible := True;
+    btnMojiZahtevi.Visible := True;
+    btnAktivneNabavke.Visible := True;
+
+  end
+
+
+  // ====================================================
+  // MENADZER
+  // ====================================================
+
+  else if SameText(FUloga, 'Menadzer') then
+  begin
+
+    btnZahteviOdobrenje.Visible := True;
+    btnSviZahtevi.Visible := True;
+    btnAktivneNabavke.Visible := True;
+
+  end
+
+
+  // ====================================================
+  // SLUZBA NABAVKE
+  // ====================================================
+
+  else if SameText(FUloga, 'Nabavka') then
+  begin
+
+    btnOdobreniZahtevi.Visible := True;
+    btnDobavljaci.Visible := True;
+    btnPonude.Visible := True;
+    btnNarudzbenice.Visible := True;
+
+  end
+
+
+  // ====================================================
+  // MAGACIONER
+  // ====================================================
+
+  else if SameText(FUloga, 'Magacioner') then
+  begin
+
+    btnOcekivaneIsporuke.Visible := True;
+    btnPrijemRobe.Visible := True;
+    btnMagacin.Visible := True;
+
+  end
+
+
+  // ====================================================
+  // ADMINISTRATOR
+  // ====================================================
+
+  else if SameText(FUloga, 'Administrator') then
+  begin
+
+    btnKorisnici.Visible := True;
+    btnMaterijali.Visible := True;
+    btnOsnovniPodaci.Visible := True;
+
+  end
+
+
+  // ====================================================
+  // NEPOZNATA ULOGA
+  // ====================================================
+
+  else
+  begin
+
+    ShowMessage(
+      'Nepoznata korisnička uloga: ' +
+      FUloga
+    );
+
+  end;
+
+end;
+
+
+// ======================================================
+// PRIJAVA KORISNIKA
+// ======================================================
+
+procedure TfrmGlavna.PrijaviKorisnika(
+  AKorisnikID: Integer;
+  const AKorisnickoIme: string;
+  const AImeKorisnika: string;
+  const AUloga: string
+);
+begin
+
+  FKorisnikID :=
+    AKorisnikID;
+
+  FKorisnickoIme :=
+    AKorisnickoIme;
+
+  FImeKorisnika :=
+    AImeKorisnika;
+
+  FUloga :=
+    AUloga;
+
+
+  // Sakrivamo ekran prethodnog korisnika
+  SakrijSveFrameove;
+
+
+  // Prava pristupa
+  PrimeniPravaPristupa;
+
+
+  // ====================================================
+  // POVEZIVANJE NAVIGACIJE
+  // ====================================================
+
+  btnNoviZahtev.OnClick :=
+    btnNoviZahtevClick;
+
+  btnMojiZahtevi.OnClick :=
+    btnMojiZahteviClick;
+
+  btnZahteviOdobrenje.OnClick :=
+    btnZahteviOdobrenjeClick;
+
+  btnSviZahtevi.OnClick :=
+    btnSviZahteviClick;
+
+  btnOdobreniZahtevi.OnClick :=
+    btnOdobreniZahteviClick;
+
+  btnDobavljaci.OnClick :=
+    btnDobavljaciClick;
+
+  // NOVO
+  btnPonude.OnClick :=
+    btnPonudeClick;
+
+  btnNarudzbenice.OnClick :=
+    btnNarudzbeniceClick;
+
+  btnAktivneNabavke.OnClick :=
+    btnAktivneNabavkeClick;
+
+  btnOcekivaneIsporuke.OnClick :=
+    btnOcekivaneIsporukeClick;
+
+  btnPrijemRobe.OnClick :=
+    btnPrijemRobeClick;
+
+  btnMagacin.OnClick :=
+    btnMagacinClick;
+
+  btnKorisnici.OnClick :=
+    btnKorisniciClick;
+
+  btnMaterijali.OnClick :=
+    btnMaterijaliClick;
+
+  btnOsnovniPodaci.OnClick :=
+    btnOsnovniPodaciClick;
+
+  btnDashboard.OnClick :=
+    btnDashboardClick;
+
+
+  // ====================================================
+  // NASLOV
+  // ====================================================
+
+  Caption :=
+    'Sistem Nabavke - ' +
+    FImeKorisnika +
+    ' (' +
+    FUloga +
+    ')';
+
+
+  Show;
+
+  // NOVO
+  // Nakon prijave automatski otvaramo Dashboard
+  btnDashboardClick(
+    btnDashboard
+  );
+
+end;
+
+
+// ======================================================
+// NOVI ZAHTEV
+// ======================================================
+
+procedure TfrmGlavna.btnNoviZahtevClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraNoviZahtev) then
+  begin
+
+    FFraNoviZahtev :=
+      TfraNoviZahtev.Create(Self);
+
+    FFraNoviZahtev.Parent :=
+      pnlSadrzaj;
+
+    FFraNoviZahtev.Align :=
+      alClient;
+
+  end;
+
+
+  TfraNoviZahtev(
+    FFraNoviZahtev
+  ).KorisnikID :=
+    FKorisnikID;
+
+
+  FFraNoviZahtev.Visible :=
+    True;
+
+  FFraNoviZahtev.BringToFront;
+
+end;
+
+
+// ======================================================
+// MOJI ZAHTEVI
+// ======================================================
+
+procedure TfrmGlavna.btnMojiZahteviClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraMojiZahtevi) then
+  begin
+
+    FFraMojiZahtevi :=
+      TfraMojiZahtevi.Create(Self);
+
+    FFraMojiZahtevi.Parent :=
+      pnlSadrzaj;
+
+    FFraMojiZahtevi.Align :=
+      alClient;
+
+  end;
+
+
+  TfraMojiZahtevi(
+    FFraMojiZahtevi
+  ).KorisnikID :=
+    FKorisnikID;
+
+
+  FFraMojiZahtevi.Visible :=
+    True;
+
+  FFraMojiZahtevi.BringToFront;
+
+end;
+
+
+// ======================================================
+// ZAHTEVI ZA ODOBRENJE
+// ======================================================
+
+procedure TfrmGlavna.btnZahteviOdobrenjeClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraZahteviOdobrenje) then
+  begin
+
+    FFraZahteviOdobrenje :=
+      TfraZahteviOdobrenje.Create(Self);
+
+    FFraZahteviOdobrenje.Parent :=
+      pnlSadrzaj;
+
+    FFraZahteviOdobrenje.Align :=
+      alClient;
+
+  end;
+
+
+  TfraZahteviOdobrenje(
+    FFraZahteviOdobrenje
+  ).Osvezi;
+
+
+  FFraZahteviOdobrenje.Visible :=
+    True;
+
+  FFraZahteviOdobrenje.BringToFront;
+
+end;
+
+
+// ======================================================
+// SVI ZAHTEVI
+// ======================================================
+
+procedure TfrmGlavna.btnSviZahteviClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraSviZahtevi) then
+  begin
+
+    FFraSviZahtevi :=
+      TfraSviZahtevi.Create(Self);
+
+    FFraSviZahtevi.Parent :=
+      pnlSadrzaj;
+
+    FFraSviZahtevi.Align :=
+      alClient;
+
+  end;
+
+
+  TfraSviZahtevi(
+    FFraSviZahtevi
+  ).Osvezi;
+
+
+  FFraSviZahtevi.Visible :=
+    True;
+
+  FFraSviZahtevi.BringToFront;
+
+end;
+
+
+// ======================================================
+// ODOBRENI ZAHTEVI
+// ======================================================
+
+procedure TfrmGlavna.btnOdobreniZahteviClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraOdobreniZahtevi) then
+  begin
+
+    FFraOdobreniZahtevi :=
+      TfraOdobreniZahtevi.Create(Self);
+
+    FFraOdobreniZahtevi.Parent :=
+      pnlSadrzaj;
+
+    FFraOdobreniZahtevi.Align :=
+      alClient;
+
+  end;
+
+
+  TfraOdobreniZahtevi(
+    FFraOdobreniZahtevi
+  ).Osvezi;
+
+
+  FFraOdobreniZahtevi.Visible :=
+    True;
+
+  FFraOdobreniZahtevi.BringToFront;
+
+end;
+
+
+// ======================================================
+// DOBAVLJACI
+// ======================================================
+
+procedure TfrmGlavna.btnDobavljaciClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraDobavljaci) then
+  begin
+
+    FFraDobavljaci :=
+      TfraDobavljaci.Create(Self);
+
+    FFraDobavljaci.Parent :=
+      pnlSadrzaj;
+
+    FFraDobavljaci.Align :=
+      alClient;
+
+  end;
+
+
+  TfraDobavljaci(
+    FFraDobavljaci
+  ).Osvezi;
+
+
+  FFraDobavljaci.Visible :=
+    True;
+
+  FFraDobavljaci.BringToFront;
+
+end;
+
+
+// ======================================================
+// NOVO - PONUDE
+// ======================================================
+
+procedure TfrmGlavna.btnPonudeClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  // Frame kreiramo samo prvi put
+  if not Assigned(FFraPonude) then
+  begin
+
+    FFraPonude :=
+      TfraPonude.Create(Self);
+
+    FFraPonude.Parent :=
+      pnlSadrzaj;
+
+    FFraPonude.Align :=
+      alClient;
+
+  end;
+
+
+  // Učitavamo trenutno stanje iz baze
+  TfraPonude(
+    FFraPonude
+  ).Osvezi;
+
+
+  // Prikazujemo Ponude
+  FFraPonude.Visible :=
+    True;
+
+  FFraPonude.BringToFront;
+
+end;
+
+
+// ======================================================
+// ODJAVA
+// ======================================================
+
+procedure TfrmGlavna.btnOdjavaClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  FKorisnikID := 0;
+  FKorisnickoIme := '';
+  FImeKorisnika := '';
+  FUloga := '';
+
+
+  frmLogin.edtKorisnickoIme.Clear;
+  frmLogin.edtLozinka.Clear;
+
+
+  frmLogin.Show;
+
+  Self.Hide;
+
+
+  frmLogin.edtKorisnickoIme.SetFocus;
+
+end;
+
+
+// ======================================================
+// ZATVARANJE APLIKACIJE
+// ======================================================
+
+procedure TfrmGlavna.FormClose(
+  Sender: TObject;
+  var Action: TCloseAction
+);
+begin
+
+  Application.Terminate;
+
+end;
+
+// ======================================================
+// OTVARANJE PONUDA ZA KONKRETAN ZAHTEV
+// ======================================================
+
+procedure TfrmGlavna.OtvoriPonudeZaZahtev(
+  AZahtevID: Integer
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  // Ako frame Ponude još nije napravljen
+  if not Assigned(FFraPonude) then
+  begin
+
+    FFraPonude :=
+      TfraPonude.Create(Self);
+
+    FFraPonude.Parent :=
+      pnlSadrzaj;
+
+    FFraPonude.Align :=
+      alClient;
+
+  end;
+
+
+  // Prikazujemo frame
+  FFraPonude.Visible :=
+    True;
+
+  FFraPonude.BringToFront;
+
+
+  // NOVO
+  // Automatski biramo zahtev sa kog smo došli
+  TfraPonude(
+    FFraPonude
+  ).OtvoriZaZahtev(
+    AZahtevID
+  );
+
+end;
+
+// ======================================================
+// NARUDŽBENICE
+// ======================================================
+
+procedure TfrmGlavna.btnNarudzbeniceClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraNarudzbenice) then
+  begin
+
+    FFraNarudzbenice :=
+      TfraNarudzbenice.Create(Self);
+
+    FFraNarudzbenice.Parent :=
+      pnlSadrzaj;
+
+    FFraNarudzbenice.Align :=
+      alClient;
+
+  end;
+
+
+  // Učitavamo najnovije podatke iz baze
+  TfraNarudzbenice(
+    FFraNarudzbenice
+  ).Osvezi;
+
+
+  FFraNarudzbenice.Visible :=
+    True;
+
+  FFraNarudzbenice.BringToFront;
+
+end;
+
+// ======================================================
+// AKTIVNE NABAVKE
+// ======================================================
+
+procedure TfrmGlavna.btnAktivneNabavkeClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  // ====================================================
+  // KREIRANJE FRAME-A
+  // ====================================================
+
+  if not Assigned(
+    FFraAktivneNabavke
+  ) then
+  begin
+
+    FFraAktivneNabavke :=
+      TfraAktivneNabavke.Create(Self);
+
+
+    FFraAktivneNabavke.Parent :=
+      pnlSadrzaj;
+
+
+    FFraAktivneNabavke.Align :=
+      alClient;
+
+  end;
+
+
+  // ====================================================
+  // TRENUTNI KORISNIK
+  // ====================================================
+
+  TfraAktivneNabavke(
+    FFraAktivneNabavke
+  ).KorisnikID :=
+    FKorisnikID;
+
+
+  TfraAktivneNabavke(
+    FFraAktivneNabavke
+  ).Uloga :=
+    FUloga;
+
+
+  // ====================================================
+  // OSVEŽAVANJE
+  // ====================================================
+
+  TfraAktivneNabavke(
+    FFraAktivneNabavke
+  ).Osvezi;
+
+
+  // ====================================================
+  // PRIKAZ
+  // ====================================================
+
+  FFraAktivneNabavke.Visible :=
+    True;
+
+  FFraAktivneNabavke.BringToFront;
+
+end;
+
+// ======================================================
+// OČEKIVANE ISPORUKE
+// ======================================================
+
+procedure TfrmGlavna.btnOcekivaneIsporukeClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(
+    FFraOcekivaneIsporuke
+  ) then
+  begin
+
+    FFraOcekivaneIsporuke :=
+      TfraOcekivaneIsporuke.Create(Self);
+
+
+    FFraOcekivaneIsporuke.Parent :=
+      pnlSadrzaj;
+
+
+    FFraOcekivaneIsporuke.Align :=
+      alClient;
+
+  end;
+
+
+  TfraOcekivaneIsporuke(
+    FFraOcekivaneIsporuke
+  ).Osvezi;
+
+
+  FFraOcekivaneIsporuke.Visible :=
+    True;
+
+  FFraOcekivaneIsporuke.BringToFront;
+
+end;
+
+// ======================================================
+// PRIJEM ROBE
+// ======================================================
+
+procedure TfrmGlavna.btnPrijemRobeClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(
+    FFraPrijemRobe
+  ) then
+  begin
+
+    FFraPrijemRobe :=
+      TfraPrijemRobe.Create(Self);
+
+    FFraPrijemRobe.Parent :=
+      pnlSadrzaj;
+
+    FFraPrijemRobe.Align :=
+      alClient;
+
+  end;
+
+
+  // Prosleđujemo ID trenutno prijavljenog magacionera
+  TfraPrijemRobe(
+    FFraPrijemRobe
+  ).KorisnikID :=
+    FKorisnikID;
+
+
+  // Učitavanje najnovijih podataka
+  TfraPrijemRobe(
+    FFraPrijemRobe
+  ).Osvezi;
+
+
+  FFraPrijemRobe.Visible :=
+    True;
+
+  FFraPrijemRobe.BringToFront;
+
+end;
+
+// ======================================================
+// OTVORI PRIJEM ZA KONKRETNU NARUDŽBENICU
+// ======================================================
+
+procedure TfrmGlavna.OtvoriPrijemRobeZaNarudzbenicu(
+  ANarudzbenicaID: Integer
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  // Kreiramo frame ako još ne postoji
+  if not Assigned(
+    FFraPrijemRobe
+  ) then
+  begin
+
+    FFraPrijemRobe :=
+      TfraPrijemRobe.Create(Self);
+
+    FFraPrijemRobe.Parent :=
+      pnlSadrzaj;
+
+    FFraPrijemRobe.Align :=
+      alClient;
+
+  end;
+
+
+  // Trenutno prijavljeni magacioner
+  TfraPrijemRobe(
+    FFraPrijemRobe
+  ).KorisnikID :=
+    FKorisnikID;
+
+
+  // Osvežavamo tabelu prijema
+  TfraPrijemRobe(
+    FFraPrijemRobe
+  ).Osvezi;
+
+
+  FFraPrijemRobe.Visible :=
+    True;
+
+  FFraPrijemRobe.BringToFront;
+
+
+  // Automatski biramo narudžbenicu
+  TfraPrijemRobe(
+    FFraPrijemRobe
+  ).OtvoriZaNarudzbenicu(
+    ANarudzbenicaID
+  );
+
+end;
+
+
+// ======================================================
+// MAGACIN
+// ======================================================
+
+procedure TfrmGlavna.btnMagacinClick(Sender: TObject);
+begin
+
+  SakrijSveFrameove;
+
+  // Kreiramo frame samo prvi put
+  if not Assigned(FFraMagacin) then
+  begin
+    FFraMagacin := TfraMagacin.Create(Self);
+
+    FFraMagacin.Parent := pnlSadrzaj;
+    FFraMagacin.Align := alClient;
+  end;
+
+  // Osvežavamo podatke svaki put kada otvorimo Magacin
+  TfraMagacin(FFraMagacin).Osvezi;
+
+  FFraMagacin.Visible := True;
+  FFraMagacin.BringToFront;
+
+end;
+
+
+// ============================================================
+// OTVORI NARUDŽBENICE ZA KONKRETAN ZAHTEV
+// ============================================================
+
+procedure TfrmGlavna.OtvoriNarudzbeniceZaZahtev(
+  AZahtevID: Integer
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraNarudzbenice) then
+  begin
+
+    FFraNarudzbenice :=
+      TfraNarudzbenice.Create(Self);
+
+    FFraNarudzbenice.Parent :=
+      pnlSadrzaj;
+
+    FFraNarudzbenice.Align :=
+      alClient;
+
+  end;
+
+
+  // Učitavamo najnovije zahteve
+  TfraNarudzbenice(
+    FFraNarudzbenice
+  ).Osvezi;
+
+
+  FFraNarudzbenice.Visible :=
+    True;
+
+  FFraNarudzbenice.BringToFront;
+
+
+  // NOVO
+  // Automatski biramo zahtev sa stranice Ponude
+  TfraNarudzbenice(
+    FFraNarudzbenice
+  ).OtvoriZaZahtev(
+    AZahtevID
+  );
+
+end;
+
+// ============================================================
+// KORISNICI
+// ============================================================
+
+procedure TfrmGlavna.btnKorisniciClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraKorisnici) then
+  begin
+
+    FFraKorisnici :=
+      TfraKorisnici.Create(Self);
+
+    FFraKorisnici.Parent :=
+      pnlSadrzaj;
+
+    FFraKorisnici.Align :=
+      alClient;
+
+  end;
+
+
+  // Uvek učitamo najnovije podatke
+  TfraKorisnici(
+    FFraKorisnici
+  ).Osvezi;
+
+
+  FFraKorisnici.Visible :=
+    True;
+
+  FFraKorisnici.BringToFront;
+
+end;
+
+// ============================================================
+// MATERIJALI
+// ============================================================
+
+procedure TfrmGlavna.btnMaterijaliClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraMaterijali) then
+  begin
+
+    FFraMaterijali :=
+      TfraMaterijali.Create(Self);
+
+    FFraMaterijali.Parent :=
+      pnlSadrzaj;
+
+    FFraMaterijali.Align :=
+      alClient;
+
+  end;
+
+
+  // Uvek učitamo najnovije podatke
+  TfraMaterijali(
+    FFraMaterijali
+  ).Osvezi;
+
+
+  FFraMaterijali.Visible :=
+    True;
+
+  FFraMaterijali.BringToFront;
+
+end;
+
+// ============================================================
+// OSNOVNI PODACI
+// ============================================================
+
+procedure TfrmGlavna.btnOsnovniPodaciClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraOsnovniPodaci) then
+  begin
+
+    FFraOsnovniPodaci :=
+      TfraOsnovniPodaci.Create(Self);
+
+    FFraOsnovniPodaci.Parent :=
+      pnlSadrzaj;
+
+    FFraOsnovniPodaci.Align :=
+      alClient;
+
+  end;
+
+
+  // Uvek učitamo najnovije podatke
+  TfraOsnovniPodaci(
+    FFraOsnovniPodaci
+  ).Osvezi;
+
+
+  FFraOsnovniPodaci.Visible :=
+    True;
+
+  FFraOsnovniPodaci.BringToFront;
+
+end;
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+
+procedure TfrmGlavna.btnDashboardClick(
+  Sender: TObject
+);
+begin
+
+  // Sakrivamo trenutno otvoreni frame
+  SakrijSveFrameove;
+
+
+  // Kreiramo Dashboard samo prvi put
+  if not Assigned(
+    FFraDashboard
+  ) then
+  begin
+
+    FFraDashboard :=
+      TfraDashboard.Create(Self);
+
+
+    FFraDashboard.Parent :=
+      pnlSadrzaj;
+
+
+    FFraDashboard.Align :=
+      alClient;
+
+  end;
+
+
+  // ==========================================================
+  // PROSLEĐUJEMO PRIJAVLJENOG KORISNIKA I ULOGU
+  // ==========================================================
+
+  TfraDashboard(
+    FFraDashboard
+  ).PrikaziZaKorisnika(
+    FKorisnikID,
+    FUloga
+  );
+
+
+  // ==========================================================
+  // PRIKAZ
+  // ==========================================================
+
+  FFraDashboard.Visible :=
+    True;
+
+
+  FFraDashboard.BringToFront;
+
+end;
+
+
+end.

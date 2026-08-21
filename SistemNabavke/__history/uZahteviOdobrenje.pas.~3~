@@ -1,0 +1,71 @@
+unit uZahteviOdobrenje;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
+  Vcl.Imaging.pngimage, Data.DB, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
+  FireDAC.DApt.Intf, FireDAC.Stan.Async, FireDAC.DApt, FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client, Vcl.Grids, Vcl.DBGrids;
+
+type
+  TfraZahteviOdobrenje = class(TFrame)
+    pnlHeader: TPanel;
+    lblNaslov: TLabel;
+    lblOpis: TLabel;
+    pnlSadrzaj: TPanel;
+    pnlStatistika: TPanel;
+    pnlCekanje: TPanel;
+    lblCekanjeNaslov: TLabel;
+    lblCekanjeBroj: TLabel;
+    lblCekanjeOpis: TLabel;
+    pnlIkonaCekanje: TPanel;
+    imgCekanje: TImage;
+    pnlOdobreni: TPanel;
+    lblOdobreniNaslov: TLabel;
+    lblOdobreniBroj: TLabel;
+    lblOdobreniOpis: TLabel;
+    pnlIkonaOdobreni: TPanel;
+    imgOdobreni: TImage;
+    pnlHitni: TPanel;
+    lblHitniNaslov: TLabel;
+    lblHitniBroj: TLabel;
+    lblHitniOpis: TLabel;
+    pnlIkonaHitni: TPanel;
+    imgHitni: TImage;
+    pnlTabela: TPanel;
+    lblTabelaNaslov: TLabel;
+    dbgZahtevi: TDBGrid;
+    qryZahtevi: TFDQuery;
+    dsZahtevi: TDataSource;
+    pnlDetalji: TPanel;
+    lblDetaljiNaslov: TLabel;
+    lblIDZahteva: TLabel;
+    lblMaterijalNaslov: TLabel;
+    lblMaterijalVrednost: TLabel;
+    lblKolicinaNaslov: TLabel;
+    lblKolicinaVrednost: TLabel;
+    lblPrioritetNaslov: TLabel;
+    lblPrioritetVrednost: TLabel;
+    lblDatumNaslov: TLabel;
+    lblDatumVrednost: TLabel;
+    lblRazlogNaslov: TLabel;
+    lblPodnosilacNaslov: TLabel;
+    lblPodnosilacVrednost: TLabel;
+    memRazlog: TMemo;
+    btnOpozoviZahtev: TButton;
+    memKomentar: TMemo;
+    lblKomentarNaslov: TLabel;
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+implementation
+
+{$R *.dfm}
+
+end.

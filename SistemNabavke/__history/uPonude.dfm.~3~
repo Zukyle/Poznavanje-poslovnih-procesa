@@ -1,0 +1,381 @@
+object fraPonude: TfraPonude
+  Left = 0
+  Top = 0
+  Width = 980
+  Height = 700
+  TabOrder = 0
+  object pnlHeader: TPanel
+    Left = 0
+    Top = 0
+    Width = 980
+    Height = 90
+    Align = alTop
+    BevelOuter = bvNone
+    Color = 16513270
+    ParentBackground = False
+    TabOrder = 0
+    object lblNaslov: TLabel
+      Left = 24
+      Top = 18
+      Width = 72
+      Height = 30
+      Caption = 'Ponude'
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -21
+      Font.Name = 'Segoe UI Semibold'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object lblOpis: TLabel
+      Left = 24
+      Top = 52
+      Width = 215
+      Height = 15
+      Caption = 'Unos, pregled i izbor ponuda dobavlja'#269'a.'
+    end
+  end
+  object pnlSadrzaj: TPanel
+    AlignWithMargins = True
+    Left = 12
+    Top = 102
+    Width = 636
+    Height = 586
+    Margins.Left = 12
+    Margins.Top = 12
+    Margins.Right = 0
+    Margins.Bottom = 12
+    Align = alClient
+    BevelOuter = bvNone
+    Color = 16513270
+    ParentBackground = False
+    TabOrder = 1
+    ExplicitTop = 105
+    object pnlUnos: TPanel
+      Left = 0
+      Top = 0
+      Width = 636
+      Height = 257
+      Align = alTop
+      BevelOuter = bvNone
+      Color = clWhite
+      ParentBackground = False
+      TabOrder = 0
+      object lblZahtevNaslov: TLabel
+        Left = 20
+        Top = 17
+        Width = 90
+        Height = 21
+        Caption = 'Zahtev : '
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -16
+        Font.Name = 'JetBrains Mono'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object lblMaterijalNaslov: TLabel
+        Left = 114
+        Top = 65
+        Width = 46
+        Height = 15
+        Caption = 'Materijal'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clGray
+        Font.Height = -12
+        Font.Name = 'Segoe UI'
+        Font.Style = []
+        ParentFont = False
+      end
+      object lblMaterijalVrednost: TLabel
+        Left = 114
+        Top = 86
+        Width = 5
+        Height = 15
+        Caption = '-'
+      end
+      object lblKolicinaNaslov: TLabel
+        Left = 114
+        Top = 107
+        Width = 42
+        Height = 15
+        Caption = 'Koli'#269'ina'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clGray
+        Font.Height = -12
+        Font.Name = 'Segoe UI'
+        Font.Style = []
+        ParentFont = False
+      end
+      object lblKolicinaVrednost: TLabel
+        Left = 114
+        Top = 128
+        Width = 5
+        Height = 15
+        Caption = '-'
+      end
+      object lblPrioritetNaslov: TLabel
+        Left = 114
+        Top = 149
+        Width = 42
+        Height = 15
+        Caption = 'Prioritet'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clGray
+        Font.Height = -12
+        Font.Name = 'Segoe UI'
+        Font.Style = []
+        ParentFont = False
+      end
+      object lblPrioritetVrednost: TLabel
+        Left = 114
+        Top = 170
+        Width = 5
+        Height = 15
+        Caption = '-'
+      end
+      object lblDatumNaslov: TLabel
+        Left = 114
+        Top = 191
+        Width = 80
+        Height = 15
+        Caption = 'Datum potrebe'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clGray
+        Font.Height = -12
+        Font.Name = 'Segoe UI'
+        Font.Style = []
+        ParentFont = False
+      end
+      object lblDatumVrednost: TLabel
+        Left = 114
+        Top = 212
+        Width = 5
+        Height = 15
+        Caption = '-'
+      end
+      object cmbZahtev: TComboBox
+        Left = 114
+        Top = 18
+        Width = 245
+        Height = 23
+        Style = csDropDownList
+        TabOrder = 0
+      end
+    end
+    object pnlTabela: TPanel
+      AlignWithMargins = True
+      Left = 0
+      Top = 269
+      Width = 636
+      Height = 317
+      Margins.Left = 0
+      Margins.Top = 12
+      Margins.Right = 0
+      Margins.Bottom = 0
+      Align = alClient
+      BevelOuter = bvNone
+      Color = clWhite
+      ParentBackground = False
+      TabOrder = 1
+      ExplicitTop = 272
+      object lblListaPonuda: TLabel
+        Left = 20
+        Top = 16
+        Width = 225
+        Height = 19
+        Caption = 'Ponude za izabrani zahtev'
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -15
+        Font.Name = 'JetBrains Mono'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object lblBrojPonuda: TLabel
+        Left = 490
+        Top = 24
+        Width = 126
+        Height = 16
+        Caption = 'Broj ponuda: 0 / 3'
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -12
+        Font.Name = 'JetBrains Mono'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object dbgPonude: TDBGrid
+        AlignWithMargins = True
+        Left = 20
+        Top = 50
+        Width = 596
+        Height = 199
+        Margins.Left = 20
+        Margins.Top = 20
+        Margins.Right = 20
+        Margins.Bottom = 20
+        TabOrder = 0
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -12
+        TitleFont.Name = 'Segoe UI'
+        TitleFont.Style = []
+      end
+      object btnObrisiPonudu: TButton
+        Left = 493
+        Top = 264
+        Width = 123
+        Height = 33
+        Caption = 'Obri'#353'i ponudu'
+        TabOrder = 1
+      end
+      object btnIzaberiPonudu: TButton
+        Left = 356
+        Top = 264
+        Width = 123
+        Height = 33
+        Caption = 'Izaberi ponudu'
+        TabOrder = 2
+      end
+    end
+  end
+  object pnlDetalji: TPanel
+    AlignWithMargins = True
+    Left = 660
+    Top = 102
+    Width = 300
+    Height = 586
+    Margins.Left = 12
+    Margins.Top = 12
+    Margins.Right = 20
+    Margins.Bottom = 12
+    Align = alRight
+    BevelOuter = bvNone
+    Color = clWhite
+    ParentBackground = False
+    TabOrder = 2
+    object lblPonudaNaslov: TLabel
+      Left = 16
+      Top = 18
+      Width = 96
+      Height = 17
+      Caption = 'Dodaj Ponudu'
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'JetBrains Mono SemiBold'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object lblDobavljacNaslov: TLabel
+      Left = 16
+      Top = 64
+      Width = 52
+      Height = 15
+      Caption = 'Dobavlja'#269
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clGray
+      Font.Height = -12
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ParentFont = False
+    end
+    object lblCenaNaslov: TLabel
+      Left = 16
+      Top = 120
+      Width = 85
+      Height = 15
+      Caption = 'Cena po jedinici'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clGray
+      Font.Height = -12
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ParentFont = False
+    end
+    object lblRokNaslov: TLabel
+      Left = 16
+      Top = 176
+      Width = 105
+      Height = 15
+      Caption = 'Rok isporuke (dana)'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clGray
+      Font.Height = -12
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ParentFont = False
+    end
+    object lblUsloviNaslov: TLabel
+      Left = 16
+      Top = 232
+      Width = 80
+      Height = 15
+      Caption = 'Uslovi isporuke'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clGray
+      Font.Height = -12
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ParentFont = False
+    end
+    object lblNapomenaNaslov: TLabel
+      Left = 16
+      Top = 296
+      Width = 59
+      Height = 15
+      Caption = 'Napomena'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clGray
+      Font.Height = -12
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ParentFont = False
+    end
+    object edtCena: TEdit
+      Left = 16
+      Top = 141
+      Width = 268
+      Height = 23
+      TabOrder = 0
+    end
+    object edtRok: TEdit
+      Left = 16
+      Top = 197
+      Width = 268
+      Height = 23
+      TabOrder = 1
+    end
+    object edtUslovi: TEdit
+      Left = 16
+      Top = 253
+      Width = 268
+      Height = 23
+      TabOrder = 2
+    end
+    object cmbDobavljac: TComboBox
+      Left = 16
+      Top = 85
+      Width = 268
+      Height = 23
+      Style = csDropDownList
+      TabOrder = 3
+    end
+    object memNapomena: TMemo
+      Left = 16
+      Top = 317
+      Width = 268
+      Height = 124
+      TabOrder = 4
+    end
+    object btnDodajPonudu: TButton
+      Left = 160
+      Top = 456
+      Width = 123
+      Height = 33
+      Caption = 'Dodaj ponudu'
+      TabOrder = 5
+    end
+  end
+end
