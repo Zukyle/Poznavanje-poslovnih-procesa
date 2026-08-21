@@ -1,0 +1,342 @@
+﻿unit uMojiZahtevi;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.ExtCtrls,
+  Vcl.StdCtrls,
+  Vcl.ComCtrls,
+  Vcl.Grids,
+  Vcl.DBGrids,
+
+  Data.DB,
+
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Param,
+  FireDAC.Stan.Error,
+  FireDAC.DatS,
+  FireDAC.Phys.Intf,
+  FireDAC.DApt.Intf,
+  FireDAC.Stan.Async,
+  FireDAC.DApt,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client;
+
+type
+  TfraMojiZahtevi = class(TFrame)
+
+    pnlHeader: TPanel;
+    lblNaslov: TLabel;
+    lblOpis: TLabel;
+
+    pnlTabela: TPanel;
+    lblListaNaslov: TLabel;
+
+    pnlDetalji: TPanel;
+    lblDetaljiNaslov: TLabel;
+    lblIDZahteva: TLabel;
+
+    dbgZahtevi: TDBGrid;
+
+    qryZahtevi: TFDQuery;
+    dsZahtevi: TDataSource;
+
+  private
+
+    // NOVO - ID trenutno prijavljenog korisnika
+    FKorisnikID: Integer;
+
+    // NOVO - kada glavna forma prosledi korisnika
+    procedure SetKorisnikID(const Value: Integer);
+
+    // NOVO - učitavanje zahteva iz baze
+    procedure UcitajZahteve;
+
+    // NOVO - podešavanje kolona u tabeli
+    procedure PodesiKolone;
+
+    // NOVO - kada korisnik promeni izabrani red
+    procedure qryZahteviAfterScroll(DataSet: TDataSet);
+
+    // NOVO - prikaz ID-a izabranog zahteva desno
+    procedure PrikaziIzabraniZahtev;
+
+  public
+
+    constructor Create(AOwner: TComponent); override;
+
+    // Glavna forma preko ovoga prosleđuje ID korisnika
+    property KorisnikID: Integer
+      read FKorisnikID
+      write SetKorisnikID;
+
+  end;
+
+implementation
+
+uses
+  uLogin;
+
+{$R *.dfm}
+
+
+// ============================================================
+// KREIRANJE FRAME-A
+// ============================================================
+
+constructor TfraMojiZahtevi.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+
+  // U početku nema prijavljenog korisnika
+  FKorisnikID := 0;
+
+  // ==========================================================
+  // POVEZIVANJE SA BAZOM
+  // ==========================================================
+
+  qryZahtevi.Connection := frmLogin.FDConnection1;
+
+  // Query -> DataSource -> DBGrid
+  dsZahtevi.DataSet := qryZahtevi;
+  dbgZahtevi.DataSource := dsZahtevi;
+
+  // Tabela služi samo za pregled
+  dbgZahtevi.ReadOnly := True;
+
+  // Kada izaberemo red, prikazaće se detalji
+  qryZahtevi.AfterScroll := qryZahteviAfterScroll;
+
+  // Dok nema izabranog zahteva
+  lblIDZahteva.Caption := '-';
+end;
+
+
+// ============================================================
+// POSTAVLJANJE PRIJAVLJENOG KORISNIKA
+// ============================================================
+
+procedure TfraMojiZahtevi.SetKorisnikID(const Value: Integer);
+begin
+  FKorisnikID := Value;
+
+  // Svaki put kada otvorimo Moje zahteve,
+  // ponovo učitavamo podatke iz baze.
+  if FKorisnikID > 0 then
+    UcitajZahteve;
+end;
+
+
+// ============================================================
+// UČITAVANJE ZAHTEVA IZ BAZE
+// ============================================================
+
+procedure TfraMojiZahtevi.UcitajZahteve;
+begin
+  qryZahtevi.Close;
+
+  qryZahtevi.SQL.Text :=
+
+    'SELECT ' +
+
+    // Interni ID zahteva
+    'r.id, ' +
+
+    // Šifra koja će izgledati npr. Z-2026-0001
+    '''Z-'' || ' +
+    'strftime(''%Y'', r.created_at) || ' +
+    '''-'' || ' +
+    'printf(''%04d'', r.id) AS sifra, ' +
+
+    // Materijal
+    'm.name AS materijal, ' +
+
+    // Količina + jedinica mere
+    'CAST(r.quantity AS TEXT) || '' '' || m.unit AS kolicina, ' +
+
+    // Prioritet
+    'r.priority AS prioritet, ' +
+
+    // Status za prikaz korisniku
+    'CASE r.status ' +
+    '  WHEN ''pending'' THEN ''Na čekanju'' ' +
+    '  WHEN ''approved'' THEN ''Odobren'' ' +
+    '  WHEN ''rejected'' THEN ''Odbijen'' ' +
+    '  ELSE r.status ' +
+    'END AS status_prikaz, ' +
+
+    // Datum kreiranja
+    'strftime(''%d.%m.%Y'', r.created_at) AS datum, ' +
+
+    // Ove podatke za sada ne prikazujemo u tabeli,
+    // ali će nam trebati u desnom panelu
+    'r.status AS status_raw, ' +
+    'r.reason, ' +
+    'r.needed_by, ' +
+    'r.manager_comment ' +
+
+    'FROM requests r ' +
+
+    'INNER JOIN materials m ' +
+    'ON m.id = r.material_id ' +
+
+    // BITNO:
+    // korisnik vidi samo svoje zahteve
+    'WHERE r.user_id = :user_id ' +
+
+    // Najnoviji zahtev ide prvi
+    'ORDER BY r.created_at DESC, r.id DESC';
+
+  qryZahtevi.ParamByName('user_id').AsInteger :=
+    FKorisnikID;
+
+  try
+    qryZahtevi.Open;
+
+    // Podešavamo izgled tabele
+    PodesiKolone;
+
+    // Prikazujemo podatke prvog reda
+    PrikaziIzabraniZahtev;
+
+  except
+    on E: Exception do
+    begin
+      ShowMessage(
+        'Greška prilikom učitavanja zahteva:' +
+        sLineBreak +
+        E.Message
+      );
+    end;
+  end;
+end;
+
+
+// ============================================================
+// PODEŠAVANJE KOLONA U DBGRID-U
+// ============================================================
+
+procedure TfraMojiZahtevi.PodesiKolone;
+begin
+  dbgZahtevi.Columns.Clear;
+
+  // ==========================================================
+  // ID
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'sifra';
+    Title.Caption := 'ID';
+    Width := 105;
+  end;
+
+
+  // ==========================================================
+  // MATERIJAL
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'materijal';
+    Title.Caption := 'Materijal';
+    Width := 160;
+  end;
+
+
+  // ==========================================================
+  // KOLIČINA
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'kolicina';
+    Title.Caption := 'Količina';
+    Width := 90;
+  end;
+
+
+  // ==========================================================
+  // PRIORITET
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'prioritet';
+    Title.Caption := 'Prioritet';
+    Width := 90;
+  end;
+
+
+  // ==========================================================
+  // STATUS
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'status_prikaz';
+    Title.Caption := 'Status';
+    Width := 105;
+  end;
+
+
+  // ==========================================================
+  // DATUM
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'datum';
+    Title.Caption := 'Datum';
+    Width := 90;
+  end;
+end;
+
+
+// ============================================================
+// PROMENA IZABRANOG REDA
+// ============================================================
+
+procedure TfraMojiZahtevi.qryZahteviAfterScroll(DataSet: TDataSet);
+begin
+  PrikaziIzabraniZahtev;
+end;
+
+
+// ============================================================
+// PRIKAZ IZABRANOG ZAHTEVA
+// ============================================================
+
+procedure TfraMojiZahtevi.PrikaziIzabraniZahtev;
+begin
+
+  // Ako nema nijednog zahteva
+  if qryZahtevi.IsEmpty then
+  begin
+    lblIDZahteva.Caption := '-';
+    Exit;
+  end;
+
+  // Prikazujemo šifru izabranog zahteva
+  lblIDZahteva.Caption :=
+    qryZahtevi.FieldByName('sifra').AsString;
+end;
+
+
+// ============================================================
+// POSTOJEĆI EVENT
+// Ostavljamo ga jer je moguće da je povezan u DFM fajlu.
+// ============================================================
+
+end.

@@ -1,0 +1,38 @@
+object fraOdobreniZahtevi: TfraOdobreniZahtevi
+  Left = 0
+  Top = 0
+  Width = 980
+  Height = 700
+  TabOrder = 0
+  object pnlHeader: TPanel
+    Left = 0
+    Top = 0
+    Width = 980
+    Height = 90
+    Align = alTop
+    BevelOuter = bvNone
+    Color = 16513270
+    ParentBackground = False
+    TabOrder = 0
+    object lblNaslov: TLabel
+      Left = 24
+      Top = 18
+      Width = 177
+      Height = 30
+      Caption = 'Odobreni zahtevi  '
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -21
+      Font.Name = 'Segoe UI Semibold'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object lblOpis: TLabel
+      Left = 24
+      Top = 52
+      Width = 254
+      Height = 15
+      Caption = 'Zahtevi odobreni za pokretanje procesa nabavke'
+    end
+  end
+end

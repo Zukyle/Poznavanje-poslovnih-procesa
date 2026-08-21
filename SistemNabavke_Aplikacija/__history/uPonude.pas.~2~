@@ -1,0 +1,2007 @@
+﻿unit uPonude;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.StdCtrls,
+  Vcl.ExtCtrls,
+  Vcl.Grids,
+  Vcl.DBGrids,
+  Vcl.Imaging.pngimage,
+  Vcl.CheckLst,
+
+  Data.DB,
+
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Param,
+  FireDAC.Stan.Error,
+  FireDAC.DatS,
+  FireDAC.Phys.Intf,
+  FireDAC.DApt.Intf,
+  FireDAC.Stan.Async,
+  FireDAC.DApt,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client;
+
+type
+  TfraPonude = class(TFrame)
+
+    pnlHeader: TPanel;
+    lblNaslov: TLabel;
+    lblOpis: TLabel;
+
+    pnlSadrzaj: TPanel;
+
+    // ========================================================
+    // DESNO - UNOS PONUDE
+    // ========================================================
+
+    pnlDetalji: TPanel;
+    lblPonudaNaslov: TLabel;
+
+    lblDobavljacNaslov: TLabel;
+    cmbDobavljac: TComboBox;
+
+    lblCenaNaslov: TLabel;
+    edtCena: TEdit;
+
+    lblRokNaslov: TLabel;
+    edtRok: TEdit;
+
+    lblUsloviNaslov: TLabel;
+    edtUslovi: TEdit;
+
+    lblNapomenaNaslov: TLabel;
+    memNapomena: TMemo;
+
+    btnDodajPonudu: TButton;
+
+    // ========================================================
+    // GORE LEVO - ZAHTEV
+    // ========================================================
+
+    pnlUnos: TPanel;
+
+    lblZahtevNaslov: TLabel;
+    cmbZahtev: TComboBox;
+
+    lblMaterijalNaslov: TLabel;
+    lblMaterijalVrednost: TLabel;
+
+    lblKolicinaNaslov: TLabel;
+    lblKolicinaVrednost: TLabel;
+
+    lblPrioritetNaslov: TLabel;
+    lblPrioritetVrednost: TLabel;
+
+    lblDatumNaslov: TLabel;
+    lblDatumVrednost: TLabel;
+
+    // ========================================================
+    // DOLE LEVO - PONUDE
+    // ========================================================
+
+    pnlTabela: TPanel;
+    lblListaPonuda: TLabel;
+
+    dbgPonude: TDBGrid;
+
+    lblBrojPonuda: TLabel;
+
+    btnObrisiPonudu: TButton;
+    btnIzaberiPonudu: TButton;
+
+  private
+
+    FQryPonude: TFDQuery;
+    FDsPonude: TDataSource;
+
+    FZahtevID: Integer;
+    FMaterijalID: Integer;
+
+    // ========================================================
+    // ZAHTEVI
+    // ========================================================
+
+    procedure UcitajZahteve;
+    procedure cmbZahtevChange(Sender: TObject);
+    procedure UcitajDetaljeZahteva;
+
+    // ========================================================
+    // DOBAVLJAČI
+    // ========================================================
+
+    procedure UcitajDobavljace;
+
+    // ========================================================
+    // PONUDE
+    // ========================================================
+
+    procedure UcitajPonude;
+    procedure PodesiKolone;
+
+    procedure OcistiUnosPonude;
+    procedure OcistiZahtev;
+
+    procedure btnDodajPonuduClick(Sender: TObject);
+    procedure btnObrisiPonuduClick(Sender: TObject);
+    procedure btnIzaberiPonuduClick(Sender: TObject);
+
+    procedure qryPonudeAfterScroll(DataSet: TDataSet);
+
+    // ========================================================
+    // VALIDACIJA
+    // ========================================================
+
+    function ProcitajCenu(
+      out ACena: Double
+    ): Boolean;
+
+    function ProcitajRok(
+      out ARok: Integer
+    ): Boolean;
+
+    function BrojPonuda: Integer;
+
+    function PonudaVecPostoji(
+      AZahtevID: Integer;
+      ADobavljacID: Integer
+    ): Boolean;
+
+    // ========================================================
+    // IZGLED
+    // ========================================================
+
+    function BojaPrioriteta(
+      const APrioritet: string
+    ): TColor;
+
+  public
+
+    constructor Create(
+      AOwner: TComponent
+    ); override;
+
+    procedure Osvezi;
+
+    // Koristićemo kada kliknemo "Unesi ponude"
+    // sa stranice Odobreni zahtevi
+    procedure OtvoriZaZahtev(
+      AZahtevID: Integer
+    );
+
+  end;
+
+implementation
+
+uses
+  uLogin;
+
+{$R *.dfm}
+
+
+// ============================================================
+// KREIRANJE FRAME-A
+// ============================================================
+
+constructor TfraPonude.Create(
+  AOwner: TComponent
+);
+begin
+  inherited Create(AOwner);
+
+
+  // ==========================================================
+  // QUERY ZA PONUDE
+  // ==========================================================
+
+  FQryPonude :=
+    TFDQuery.Create(Self);
+
+  FQryPonude.Connection :=
+    frmLogin.FDConnection1;
+
+
+  // ==========================================================
+  // DATASOURCE
+  // ==========================================================
+
+  FDsPonude :=
+    TDataSource.Create(Self);
+
+  FDsPonude.DataSet :=
+    FQryPonude;
+
+
+  // ==========================================================
+  // GRID
+  // ==========================================================
+
+  dbgPonude.DataSource :=
+    FDsPonude;
+
+  dbgPonude.ReadOnly :=
+    True;
+
+  dbgPonude.Options :=
+    dbgPonude.Options + [dgRowSelect];
+
+
+  FQryPonude.AfterScroll :=
+    qryPonudeAfterScroll;
+
+
+  // ==========================================================
+  // COMBOBOX
+  // ==========================================================
+
+  cmbZahtev.Style :=
+    csDropDownList;
+
+  cmbDobavljac.Style :=
+    csDropDownList;
+
+
+  cmbZahtev.OnChange :=
+    cmbZahtevChange;
+
+
+  // ==========================================================
+  // DUGMAD
+  // ==========================================================
+
+  btnDodajPonudu.OnClick :=
+    btnDodajPonuduClick;
+
+  btnObrisiPonudu.OnClick :=
+    btnObrisiPonuduClick;
+
+  btnIzaberiPonudu.OnClick :=
+    btnIzaberiPonuduClick;
+
+
+  // ==========================================================
+  // BOJA PRIORITETA
+  // ==========================================================
+
+  lblPrioritetVrednost.StyleElements :=
+    lblPrioritetVrednost.StyleElements - [seFont];
+
+  lblPrioritetVrednost.Font.Style :=
+    [fsBold];
+
+
+  // ==========================================================
+  // POČETNO STANJE
+  // ==========================================================
+
+  FZahtevID := 0;
+  FMaterijalID := 0;
+
+  OcistiZahtev;
+  OcistiUnosPonude;
+
+  Osvezi;
+end;
+
+
+// ============================================================
+// OSVEŽAVANJE
+// ============================================================
+
+procedure TfraPonude.Osvezi;
+begin
+  UcitajZahteve;
+end;
+
+
+// ============================================================
+// BOJA PRIORITETA
+// ============================================================
+
+function TfraPonude.BojaPrioriteta(
+  const APrioritet: string
+): TColor;
+begin
+
+  if SameText(APrioritet, 'Visok') then
+    Result := RGB(220, 38, 38)
+
+  else if SameText(APrioritet, 'Srednji') then
+    Result := RGB(245, 158, 11)
+
+  else if SameText(APrioritet, 'Nizak') then
+    Result := RGB(22, 163, 74)
+
+  else
+    Result := clWindowText;
+
+end;
+
+
+// ============================================================
+// UČITAVANJE ODOBRENIH ZAHTEVA U COMBOBOX
+// ============================================================
+
+procedure TfraPonude.UcitajZahteve;
+var
+  Q: TFDQuery;
+  PrethodniZahtevID: Integer;
+  I: Integer;
+begin
+
+  PrethodniZahtevID :=
+    FZahtevID;
+
+
+  cmbZahtev.Items.Clear;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+
+      'SELECT ' +
+
+      'r.id, ' +
+
+      '''Z-'' || ' +
+      'strftime(''%Y'', r.created_at) || ' +
+      '''-'' || ' +
+      'printf(''%04d'', r.id) AS sifra, ' +
+
+      'CAST(m.name AS VARCHAR(150)) ' +
+      'AS materijal ' +
+
+      'FROM requests r ' +
+
+      'INNER JOIN materials m ' +
+      'ON m.id = r.material_id ' +
+
+      'WHERE r.status = ''approved'' ' +
+
+      'ORDER BY r.needed_by ASC, r.id DESC';
+
+
+    try
+
+      Q.Open;
+
+
+      while not Q.Eof do
+      begin
+
+        cmbZahtev.Items.AddObject(
+
+          Q.FieldByName('sifra').AsString +
+          ' - ' +
+          Q.FieldByName('materijal').AsString,
+
+          TObject(
+            NativeInt(
+              Q.FieldByName('id').AsInteger
+            )
+          )
+
+        );
+
+
+        Q.Next;
+      end;
+
+
+    except
+
+      on E: Exception do
+      begin
+
+        ShowMessage(
+          'Greška prilikom učitavanja zahteva:' +
+          sLineBreak +
+          E.Message
+        );
+
+      end;
+
+    end;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+
+  // ==========================================================
+  // POKUŠAVAMO DA VRATIMO PRETHODNO IZABRANI ZAHTEV
+  // ==========================================================
+
+  cmbZahtev.ItemIndex :=
+    -1;
+
+
+  if PrethodniZahtevID <> 0 then
+  begin
+
+    for I := 0 to cmbZahtev.Items.Count - 1 do
+    begin
+
+      if Integer(
+        NativeInt(
+          cmbZahtev.Items.Objects[I]
+        )
+      ) = PrethodniZahtevID then
+      begin
+
+        cmbZahtev.ItemIndex :=
+          I;
+
+        Break;
+
+      end;
+
+    end;
+
+  end;
+
+
+  // Ako prethodni ne postoji, biramo prvi
+  if (cmbZahtev.ItemIndex = -1) and
+     (cmbZahtev.Items.Count > 0) then
+  begin
+
+    cmbZahtev.ItemIndex :=
+      0;
+
+  end;
+
+
+  if cmbZahtev.ItemIndex >= 0 then
+    cmbZahtevChange(cmbZahtev)
+  else
+    OcistiZahtev;
+
+end;
+
+
+// ============================================================
+// PROMENA ZAHTEVA
+// ============================================================
+
+procedure TfraPonude.cmbZahtevChange(
+  Sender: TObject
+);
+begin
+
+  if cmbZahtev.ItemIndex < 0 then
+  begin
+
+    OcistiZahtev;
+
+    Exit;
+
+  end;
+
+
+  FZahtevID :=
+    Integer(
+      NativeInt(
+        cmbZahtev.Items.Objects[
+          cmbZahtev.ItemIndex
+        ]
+      )
+    );
+
+
+  UcitajDetaljeZahteva;
+
+  UcitajDobavljace;
+
+  UcitajPonude;
+
+  OcistiUnosPonude;
+
+end;
+
+
+// ============================================================
+// DETALJI ZAHTEVA
+// ============================================================
+
+procedure TfraPonude.UcitajDetaljeZahteva;
+var
+  Q: TFDQuery;
+  Prioritet: string;
+begin
+
+  if FZahtevID = 0 then
+  begin
+
+    OcistiZahtev;
+
+    Exit;
+
+  end;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+
+      'SELECT ' +
+
+      'r.material_id, ' +
+
+      'CAST(m.name AS VARCHAR(150)) ' +
+      'AS materijal, ' +
+
+      'CAST(' +
+        'printf(''%g'', r.quantity) || ' +
+        ''' '' || m.unit ' +
+      'AS VARCHAR(50)) ' +
+      'AS kolicina, ' +
+
+      'CAST(r.priority AS VARCHAR(30)) ' +
+      'AS prioritet, ' +
+
+      'strftime(''%d.%m.%Y'', r.needed_by) ' +
+      'AS datum_potrebe ' +
+
+      'FROM requests r ' +
+
+      'INNER JOIN materials m ' +
+      'ON m.id = r.material_id ' +
+
+      'WHERE r.id = :id ' +
+      'AND r.status = ''approved''';
+
+
+    Q.ParamByName('id').AsInteger :=
+      FZahtevID;
+
+
+    Q.Open;
+
+
+    if Q.IsEmpty then
+    begin
+
+      OcistiZahtev;
+
+      Exit;
+
+    end;
+
+
+    FMaterijalID :=
+      Q.FieldByName(
+        'material_id'
+      ).AsInteger;
+
+
+    lblMaterijalVrednost.Caption :=
+      Q.FieldByName(
+        'materijal'
+      ).AsString;
+
+
+    lblKolicinaVrednost.Caption :=
+      Q.FieldByName(
+        'kolicina'
+      ).AsString;
+
+
+    Prioritet :=
+      Q.FieldByName(
+        'prioritet'
+      ).AsString;
+
+
+    lblPrioritetVrednost.Caption :=
+      Prioritet;
+
+    lblPrioritetVrednost.Font.Color :=
+      BojaPrioriteta(
+        Prioritet
+      );
+
+
+    lblDatumVrednost.Caption :=
+      Q.FieldByName(
+        'datum_potrebe'
+      ).AsString;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// UČITAVANJE ODGOVARAJUĆIH DOBAVLJAČA
+// ============================================================
+
+procedure TfraPonude.UcitajDobavljace;
+var
+  Q: TFDQuery;
+begin
+
+  cmbDobavljac.Items.Clear;
+  cmbDobavljac.ItemIndex := -1;
+
+
+  if (FZahtevID = 0) or
+     (FMaterijalID = 0) then
+    Exit;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    // ========================================================
+    // PRIKAZUJEMO SAMO DOBAVLJAČE KOJI:
+    //
+    // 1. dobavljaju ovaj materijal
+    // 2. još nemaju ponudu za ovaj zahtev
+    // ========================================================
+
+    Q.SQL.Text :=
+
+      'SELECT ' +
+
+      's.id, ' +
+
+      'CAST(s.name AS VARCHAR(150)) ' +
+      'AS naziv ' +
+
+      'FROM suppliers s ' +
+
+      'INNER JOIN supplier_materials sm ' +
+      'ON sm.supplier_id = s.id ' +
+
+      'WHERE sm.material_id = :material_id ' +
+
+      'AND NOT EXISTS (' +
+
+        'SELECT 1 ' +
+        'FROM offers o ' +
+
+        'WHERE o.request_id = :request_id ' +
+        'AND o.supplier_id = s.id' +
+
+      ') ' +
+
+      'ORDER BY s.name ASC';
+
+
+    Q.ParamByName(
+      'material_id'
+    ).AsInteger :=
+      FMaterijalID;
+
+
+    Q.ParamByName(
+      'request_id'
+    ).AsInteger :=
+      FZahtevID;
+
+
+    Q.Open;
+
+
+    while not Q.Eof do
+    begin
+
+      cmbDobavljac.Items.AddObject(
+
+        Q.FieldByName(
+          'naziv'
+        ).AsString,
+
+        TObject(
+          NativeInt(
+            Q.FieldByName(
+              'id'
+            ).AsInteger
+          )
+        )
+
+      );
+
+
+      Q.Next;
+
+    end;
+
+
+    if cmbDobavljac.Items.Count > 0 then
+      cmbDobavljac.ItemIndex := 0;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// UČITAVANJE PONUDA
+// ============================================================
+
+procedure TfraPonude.UcitajPonude;
+var
+  Broj: Integer;
+begin
+
+  FQryPonude.Close;
+
+
+  if FZahtevID = 0 then
+  begin
+
+    lblBrojPonuda.Caption :=
+      'Broj ponuda: 0 / 3';
+
+    btnIzaberiPonudu.Enabled :=
+      False;
+
+    btnObrisiPonudu.Enabled :=
+      False;
+
+    Exit;
+
+  end;
+
+
+  FQryPonude.SQL.Text :=
+
+    'SELECT ' +
+
+    'o.id, ' +
+
+    'o.supplier_id, ' +
+
+    'CAST(s.name AS VARCHAR(150)) ' +
+    'AS dobavljac, ' +
+
+    'o.unit_price, ' +
+
+    'CAST(' +
+      'printf(''%.2f'', o.unit_price) ' +
+    'AS VARCHAR(50)) ' +
+    'AS cena_prikaz, ' +
+
+    'o.delivery_days, ' +
+
+    'CAST(COALESCE(o.delivery_terms, '''') ' +
+    'AS VARCHAR(250)) ' +
+    'AS uslovi, ' +
+
+    'CAST(COALESCE(o.note, '''') ' +
+    'AS VARCHAR(500)) ' +
+    'AS napomena, ' +
+
+    'o.selected, ' +
+
+    'CAST(' +
+
+      'CASE ' +
+      'WHEN o.selected = 1 THEN ''Da'' ' +
+      'ELSE ''Ne'' ' +
+      'END ' +
+
+    'AS VARCHAR(10)) ' +
+    'AS izabrana ' +
+
+    'FROM offers o ' +
+
+    'INNER JOIN suppliers s ' +
+    'ON s.id = o.supplier_id ' +
+
+    'WHERE o.request_id = :request_id ' +
+
+    'ORDER BY o.selected DESC, ' +
+    'o.unit_price ASC, ' +
+    'o.delivery_days ASC';
+
+
+  FQryPonude.ParamByName(
+    'request_id'
+  ).AsInteger :=
+    FZahtevID;
+
+
+  try
+
+    FQryPonude.Open;
+
+    PodesiKolone;
+
+
+    Broj :=
+      FQryPonude.RecordCount;
+
+
+    lblBrojPonuda.Caption :=
+      'Broj ponuda: ' +
+      IntToStr(Broj) +
+      ' / 3';
+
+
+    btnIzaberiPonudu.Enabled :=
+      (Broj >= 3) and
+      (not FQryPonude.IsEmpty);
+
+
+    btnObrisiPonudu.Enabled :=
+      not FQryPonude.IsEmpty;
+
+
+  except
+
+    on E: Exception do
+    begin
+
+      ShowMessage(
+        'Greška prilikom učitavanja ponuda:' +
+        sLineBreak +
+        E.Message
+      );
+
+    end;
+
+  end;
+
+end;
+
+
+// ============================================================
+// KOLONE TABELE
+// ============================================================
+
+procedure TfraPonude.PodesiKolone;
+begin
+
+  dbgPonude.Columns.Clear;
+
+
+  // ==========================================================
+  // DOBAVLJAČ
+  // ==========================================================
+
+  with dbgPonude.Columns.Add do
+  begin
+
+    FieldName :=
+      'dobavljac';
+
+    Title.Caption :=
+      'Dobavljač';
+
+    Width :=
+      160;
+
+  end;
+
+
+  // ==========================================================
+  // CENA
+  // ==========================================================
+
+  with dbgPonude.Columns.Add do
+  begin
+
+    FieldName :=
+      'cena_prikaz';
+
+    Title.Caption :=
+      'Cena/jed.';
+
+    Width :=
+      85;
+
+  end;
+
+
+  // ==========================================================
+  // ROK
+  // ==========================================================
+
+  with dbgPonude.Columns.Add do
+  begin
+
+    FieldName :=
+      'delivery_days';
+
+    Title.Caption :=
+      'Rok (dana)';
+
+    Width :=
+      80;
+
+  end;
+
+
+  // ==========================================================
+  // USLOVI
+  // ==========================================================
+
+  with dbgPonude.Columns.Add do
+  begin
+
+    FieldName :=
+      'uslovi';
+
+    Title.Caption :=
+      'Uslovi isporuke';
+
+    Width :=
+      170;
+
+  end;
+
+
+  // ==========================================================
+  // IZABRANA
+  // ==========================================================
+
+  with dbgPonude.Columns.Add do
+  begin
+
+    FieldName :=
+      'izabrana';
+
+    Title.Caption :=
+      'Izabrana';
+
+    Width :=
+      70;
+
+  end;
+
+end;
+
+
+// ============================================================
+// BROJ PONUDA
+// ============================================================
+
+function TfraPonude.BrojPonuda: Integer;
+var
+  Q: TFDQuery;
+begin
+
+  Result := 0;
+
+
+  if FZahtevID = 0 then
+    Exit;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+
+      'SELECT COUNT(*) AS broj ' +
+
+      'FROM offers ' +
+
+      'WHERE request_id = :request_id';
+
+
+    Q.ParamByName(
+      'request_id'
+    ).AsInteger :=
+      FZahtevID;
+
+
+    Q.Open;
+
+
+    Result :=
+      Q.FieldByName(
+        'broj'
+      ).AsInteger;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// PROVERA DUPLIKATA
+// ============================================================
+
+function TfraPonude.PonudaVecPostoji(
+  AZahtevID: Integer;
+  ADobavljacID: Integer
+): Boolean;
+var
+  Q: TFDQuery;
+begin
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+
+      'SELECT COUNT(*) AS broj ' +
+
+      'FROM offers ' +
+
+      'WHERE request_id = :request_id ' +
+      'AND supplier_id = :supplier_id';
+
+
+    Q.ParamByName(
+      'request_id'
+    ).AsInteger :=
+      AZahtevID;
+
+
+    Q.ParamByName(
+      'supplier_id'
+    ).AsInteger :=
+      ADobavljacID;
+
+
+    Q.Open;
+
+
+    Result :=
+      Q.FieldByName(
+        'broj'
+      ).AsInteger > 0;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// ČITANJE CENE
+// ============================================================
+
+function TfraPonude.ProcitajCenu(
+  out ACena: Double
+): Boolean;
+var
+  S: string;
+  FS: TFormatSettings;
+begin
+
+  Result :=
+    False;
+
+
+  S :=
+    Trim(
+      edtCena.Text
+    );
+
+
+  if S = '' then
+  begin
+
+    ShowMessage(
+      'Unesite cenu po jedinici.'
+    );
+
+    edtCena.SetFocus;
+
+    Exit;
+
+  end;
+
+
+  FS :=
+    TFormatSettings.Create;
+
+
+  // Dozvoljavamo i:
+  // 145,50
+  // 145.50
+
+  if FS.DecimalSeparator = ',' then
+    S := StringReplace(
+      S,
+      '.',
+      ',',
+      [rfReplaceAll]
+    )
+  else
+    S := StringReplace(
+      S,
+      ',',
+      '.',
+      [rfReplaceAll]
+    );
+
+
+  if not TryStrToFloat(
+    S,
+    ACena,
+    FS
+  ) then
+  begin
+
+    ShowMessage(
+      'Cena nije pravilno uneta.'
+    );
+
+    edtCena.SetFocus;
+
+    Exit;
+
+  end;
+
+
+  if ACena <= 0 then
+  begin
+
+    ShowMessage(
+      'Cena mora biti veća od 0.'
+    );
+
+    edtCena.SetFocus;
+
+    Exit;
+
+  end;
+
+
+  Result :=
+    True;
+
+end;
+
+
+// ============================================================
+// ČITANJE ROKA
+// ============================================================
+
+function TfraPonude.ProcitajRok(
+  out ARok: Integer
+): Boolean;
+begin
+
+  Result :=
+    False;
+
+
+  if not TryStrToInt(
+    Trim(edtRok.Text),
+    ARok
+  ) then
+  begin
+
+    ShowMessage(
+      'Rok isporuke mora biti ceo broj dana.'
+    );
+
+    edtRok.SetFocus;
+
+    Exit;
+
+  end;
+
+
+  if ARok < 0 then
+  begin
+
+    ShowMessage(
+      'Rok isporuke ne može biti negativan.'
+    );
+
+    edtRok.SetFocus;
+
+    Exit;
+
+  end;
+
+
+  Result :=
+    True;
+
+end;
+
+
+// ============================================================
+// DODAJ PONUDU
+// ============================================================
+
+procedure TfraPonude.btnDodajPonuduClick(
+  Sender: TObject
+);
+var
+  Q: TFDQuery;
+
+  DobavljacID: Integer;
+
+  Cena: Double;
+  Rok: Integer;
+begin
+
+  // ==========================================================
+  // ZAHTEV
+  // ==========================================================
+
+  if FZahtevID = 0 then
+  begin
+
+    ShowMessage(
+      'Prvo izaberite zahtev.'
+    );
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // DOBAVLJAČ
+  // ==========================================================
+
+  if cmbDobavljac.ItemIndex < 0 then
+  begin
+
+    ShowMessage(
+      'Nema dostupnog dobavljača za unos ponude.' +
+      sLineBreak +
+      'Proverite da li je dobavljač povezan sa ovim materijalom.'
+    );
+
+    Exit;
+
+  end;
+
+
+  DobavljacID :=
+    Integer(
+      NativeInt(
+        cmbDobavljac.Items.Objects[
+          cmbDobavljac.ItemIndex
+        ]
+      )
+    );
+
+
+  // ==========================================================
+  // DUPLIKAT
+  // ==========================================================
+
+  if PonudaVecPostoji(
+    FZahtevID,
+    DobavljacID
+  ) then
+  begin
+
+    ShowMessage(
+      'Ovaj dobavljač već ima ponudu za izabrani zahtev.'
+    );
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // CENA
+  // ==========================================================
+
+  if not ProcitajCenu(
+    Cena
+  ) then
+    Exit;
+
+
+  // ==========================================================
+  // ROK
+  // ==========================================================
+
+  if not ProcitajRok(
+    Rok
+  ) then
+    Exit;
+
+
+  // ==========================================================
+  // INSERT
+  // ==========================================================
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+
+      'INSERT INTO offers ' +
+
+      '(' +
+        'request_id, ' +
+        'supplier_id, ' +
+        'unit_price, ' +
+        'delivery_days, ' +
+        'delivery_terms, ' +
+        'note, ' +
+        'selected' +
+      ') ' +
+
+      'VALUES ' +
+
+      '(' +
+        ':request_id, ' +
+        ':supplier_id, ' +
+        ':unit_price, ' +
+        ':delivery_days, ' +
+        ':delivery_terms, ' +
+        ':note, ' +
+        '0' +
+      ')';
+
+
+    Q.ParamByName(
+      'request_id'
+    ).AsInteger :=
+      FZahtevID;
+
+
+    Q.ParamByName(
+      'supplier_id'
+    ).AsInteger :=
+      DobavljacID;
+
+
+    Q.ParamByName(
+      'unit_price'
+    ).AsFloat :=
+      Cena;
+
+
+    Q.ParamByName(
+      'delivery_days'
+    ).AsInteger :=
+      Rok;
+
+
+    Q.ParamByName(
+      'delivery_terms'
+    ).AsString :=
+      Trim(
+        edtUslovi.Text
+      );
+
+
+    Q.ParamByName(
+      'note'
+    ).AsString :=
+      Trim(
+        memNapomena.Text
+      );
+
+
+    try
+
+      Q.ExecSQL;
+
+
+      ShowMessage(
+        'Ponuda je uspešno dodata.'
+      );
+
+
+      // ======================================================
+      // OSVEŽAVANJE
+      // ======================================================
+
+      UcitajPonude;
+
+      // Dobavljač koji je upravo korišćen
+      // više se neće nuditi u ComboBox-u.
+      UcitajDobavljace;
+
+      OcistiUnosPonude;
+
+
+    except
+
+      on E: Exception do
+      begin
+
+        ShowMessage(
+          'Greška prilikom dodavanja ponude:' +
+          sLineBreak +
+          E.Message
+        );
+
+      end;
+
+    end;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// OBRIŠI PONUDU
+// ============================================================
+
+procedure TfraPonude.btnObrisiPonuduClick(
+  Sender: TObject
+);
+var
+  Q: TFDQuery;
+
+  PonudaID: Integer;
+  Dobavljac: string;
+begin
+
+  if (not FQryPonude.Active) or
+     FQryPonude.IsEmpty then
+  begin
+
+    ShowMessage(
+      'Izaberite ponudu koju želite da obrišete.'
+    );
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // IZABRANA PONUDA
+  // ==========================================================
+
+  if FQryPonude.FieldByName(
+    'selected'
+  ).AsInteger = 1 then
+  begin
+
+    ShowMessage(
+      'Izabranu ponudu nije moguće obrisati.' +
+      sLineBreak +
+      'Prvo izaberite drugu ponudu.'
+    );
+
+    Exit;
+
+  end;
+
+
+  PonudaID :=
+    FQryPonude.FieldByName(
+      'id'
+    ).AsInteger;
+
+
+  Dobavljac :=
+    FQryPonude.FieldByName(
+      'dobavljac'
+    ).AsString;
+
+
+  if MessageDlg(
+
+    'Da li ste sigurni da želite da obrišete ponudu dobavljača "' +
+    Dobavljac +
+    '"?',
+
+    mtConfirmation,
+    [mbYes, mbNo],
+    0
+
+  ) <> mrYes then
+    Exit;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    // ========================================================
+    // DODATNA ZAŠTITA
+    // Ponuda koja se već koristi u narudžbenici ne sme da se briše.
+    // ========================================================
+
+    Q.SQL.Text :=
+
+      'SELECT COUNT(*) AS broj ' +
+
+      'FROM orders ' +
+
+      'WHERE offer_id = :offer_id';
+
+
+    Q.ParamByName(
+      'offer_id'
+    ).AsInteger :=
+      PonudaID;
+
+
+    Q.Open;
+
+
+    if Q.FieldByName(
+      'broj'
+    ).AsInteger > 0 then
+    begin
+
+      ShowMessage(
+        'Ponudu nije moguće obrisati jer se koristi u narudžbenici.'
+      );
+
+      Exit;
+
+    end;
+
+
+    // ========================================================
+    // DELETE
+    // ========================================================
+
+    Q.Close;
+
+
+    Q.SQL.Text :=
+
+      'DELETE FROM offers ' +
+
+      'WHERE id = :id';
+
+
+    Q.ParamByName(
+      'id'
+    ).AsInteger :=
+      PonudaID;
+
+
+    try
+
+      Q.ExecSQL;
+
+
+      ShowMessage(
+        'Ponuda je obrisana.'
+      );
+
+
+      UcitajPonude;
+
+      UcitajDobavljace;
+
+
+    except
+
+      on E: Exception do
+      begin
+
+        ShowMessage(
+          'Greška prilikom brisanja ponude:' +
+          sLineBreak +
+          E.Message
+        );
+
+      end;
+
+    end;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// IZABERI PONUDU
+// ============================================================
+
+procedure TfraPonude.btnIzaberiPonuduClick(
+  Sender: TObject
+);
+var
+  Q: TFDQuery;
+
+  PonudaID: Integer;
+  Dobavljac: string;
+begin
+
+  // ==========================================================
+  // MINIMUM 3 PONUDE
+  // ==========================================================
+
+  if BrojPonuda < 3 then
+  begin
+
+    ShowMessage(
+      'Za izbor ponude potrebno je najmanje 3 ponude ' +
+      'različitih dobavljača.'
+    );
+
+    Exit;
+
+  end;
+
+
+  if (not FQryPonude.Active) or
+     FQryPonude.IsEmpty then
+  begin
+
+    ShowMessage(
+      'Izaberite ponudu.'
+    );
+
+    Exit;
+
+  end;
+
+
+  PonudaID :=
+    FQryPonude.FieldByName(
+      'id'
+    ).AsInteger;
+
+
+  Dobavljac :=
+    FQryPonude.FieldByName(
+      'dobavljac'
+    ).AsString;
+
+
+  if MessageDlg(
+
+    'Da li želite da izaberete ponudu dobavljača "' +
+    Dobavljac +
+    '"?',
+
+    mtConfirmation,
+    [mbYes, mbNo],
+    0
+
+  ) <> mrYes then
+    Exit;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    try
+
+      frmLogin.FDConnection1.StartTransaction;
+
+
+      // ======================================================
+      // PRVO SVE PONUDE ZA ZAHTEV POSTAVLJAMO NA 0
+      // ======================================================
+
+      Q.SQL.Text :=
+
+        'UPDATE offers ' +
+
+        'SET selected = 0 ' +
+
+        'WHERE request_id = :request_id';
+
+
+      Q.ParamByName(
+        'request_id'
+      ).AsInteger :=
+        FZahtevID;
+
+
+      Q.ExecSQL;
+
+
+      // ======================================================
+      // IZABRANA PONUDA = 1
+      // ======================================================
+
+      Q.Close;
+
+
+      Q.SQL.Text :=
+
+        'UPDATE offers ' +
+
+        'SET selected = 1 ' +
+
+        'WHERE id = :id ' +
+        'AND request_id = :request_id';
+
+
+      Q.ParamByName(
+        'id'
+      ).AsInteger :=
+        PonudaID;
+
+
+      Q.ParamByName(
+        'request_id'
+      ).AsInteger :=
+        FZahtevID;
+
+
+      Q.ExecSQL;
+
+
+      frmLogin.FDConnection1.Commit;
+
+
+      ShowMessage(
+        'Ponuda dobavljača "' +
+        Dobavljac +
+        '" je izabrana.'
+      );
+
+
+      UcitajPonude;
+
+
+    except
+
+      on E: Exception do
+      begin
+
+        if frmLogin.FDConnection1.InTransaction then
+          frmLogin.FDConnection1.Rollback;
+
+
+        ShowMessage(
+          'Greška prilikom izbora ponude:' +
+          sLineBreak +
+          E.Message
+        );
+
+      end;
+
+    end;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// PROMENA REDA U TABELI
+// ============================================================
+
+procedure TfraPonude.qryPonudeAfterScroll(
+  DataSet: TDataSet
+);
+begin
+
+  btnObrisiPonudu.Enabled :=
+    FQryPonude.Active and
+    (not FQryPonude.IsEmpty);
+
+
+  btnIzaberiPonudu.Enabled :=
+    FQryPonude.Active and
+    (not FQryPonude.IsEmpty) and
+    (FQryPonude.RecordCount >= 3);
+
+end;
+
+
+// ============================================================
+// ČIŠĆENJE UNOSA PONUDE
+// ============================================================
+
+procedure TfraPonude.OcistiUnosPonude;
+begin
+
+  edtCena.Clear;
+
+  edtRok.Clear;
+
+  edtUslovi.Clear;
+
+  memNapomena.Clear;
+
+
+  if cmbDobavljac.Items.Count > 0 then
+    cmbDobavljac.ItemIndex := 0
+  else
+    cmbDobavljac.ItemIndex := -1;
+
+end;
+
+
+// ============================================================
+// ČIŠĆENJE ZAHTEVA
+// ============================================================
+
+procedure TfraPonude.OcistiZahtev;
+begin
+
+  FZahtevID :=
+    0;
+
+  FMaterijalID :=
+    0;
+
+
+  lblMaterijalVrednost.Caption :=
+    '-';
+
+  lblKolicinaVrednost.Caption :=
+    '-';
+
+  lblPrioritetVrednost.Caption :=
+    '-';
+
+  lblPrioritetVrednost.Font.Color :=
+    clWindowText;
+
+  lblDatumVrednost.Caption :=
+    '-';
+
+
+  cmbDobavljac.Items.Clear;
+
+
+  FQryPonude.Close;
+
+
+  lblBrojPonuda.Caption :=
+    'Broj ponuda: 0 / 3';
+
+
+  btnIzaberiPonudu.Enabled :=
+    False;
+
+  btnObrisiPonudu.Enabled :=
+    False;
+
+  btnDodajPonudu.Enabled :=
+    False;
+
+end;
+
+
+// ============================================================
+// OTVORI PONUDE ZA KONKRETAN ZAHTEV
+// ============================================================
+
+procedure TfraPonude.OtvoriZaZahtev(
+  AZahtevID: Integer
+);
+var
+  I: Integer;
+begin
+
+  // Prvo učitavamo sve aktuelne odobrene zahteve
+  UcitajZahteve;
+
+
+  for I := 0 to cmbZahtev.Items.Count - 1 do
+  begin
+
+    if Integer(
+      NativeInt(
+        cmbZahtev.Items.Objects[I]
+      )
+    ) = AZahtevID then
+    begin
+
+      cmbZahtev.ItemIndex :=
+        I;
+
+
+      cmbZahtevChange(
+        cmbZahtev
+      );
+
+
+      Exit;
+
+    end;
+
+  end;
+
+
+  ShowMessage(
+    'Izabrani zahtev više nije dostupan za unos ponuda.'
+  );
+
+end;
+
+
+// ============================================================
+// DVA PRAZNA DOGAĐAJA KOJA SU TRENUTNO VEZANA U DFM-U
+// ============================================================
+
+end.

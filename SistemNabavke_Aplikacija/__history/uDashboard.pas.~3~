@@ -1,0 +1,2104 @@
+﻿unit uDashboard;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.StdCtrls,
+  Vcl.ExtCtrls,
+  Vcl.Imaging.pngimage,
+  Vcl.Grids,
+  Vcl.DBGrids,
+
+  Data.DB,
+
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Param,
+  FireDAC.Stan.Error,
+  FireDAC.DatS,
+  FireDAC.Phys.Intf,
+  FireDAC.DApt.Intf,
+  FireDAC.Stan.Async,
+  FireDAC.DApt,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client;
+
+type
+  TfraDashboard = class(TFrame)
+
+    pnlHeader: TPanel;
+    Dashboard: TLabel;
+    lblOpis: TLabel;
+
+    pnlSadrzaj: TPanel;
+
+    pnlKartice: TPanel;
+
+    pnlKartica1: TPanel;
+    lblKartica1Naslov: TLabel;
+    lblKartica1Vrednost: TLabel;
+    lblKartica1Opis: TLabel;
+    shpIkona1: TShape;
+    imgKartica1: TImage;
+
+    pnlKartica2: TPanel;
+    lblKartica2Naslov: TLabel;
+    lblKartica2Vrednost: TLabel;
+    lblKartica2Opis: TLabel;
+    shpIkona2: TShape;
+    imgKartica2: TImage;
+
+    pnlKartica3: TPanel;
+    lblKartica3Naslov: TLabel;
+    lblKartica3Vrednost: TLabel;
+    lblKartica3Opis: TLabel;
+    shpIkona3: TShape;
+    imgKartica3: TImage;
+
+    pnlKartica4: TPanel;
+    lblKartica4Naslov: TLabel;
+    lblKartica4Vrednost: TLabel;
+    lblKartica4Opis: TLabel;
+    shpIkona4: TShape;
+    imgKartica4: TImage;
+
+    pnlTabela: TPanel;
+    lblTabelaNaslov: TLabel;
+    dbgDashboard: TDBGrid;
+
+  private
+
+    // ========================================================
+    // BAZA
+    // ========================================================
+
+    FQryDashboard: TFDQuery;
+    FDsDashboard: TDataSource;
+
+
+    // ========================================================
+    // PRIJAVLJENI KORISNIK
+    // ========================================================
+
+    FKorisnikID: Integer;
+    FUloga: string;
+
+
+    // ========================================================
+    // DASHBOARD
+    // ========================================================
+
+    procedure PodesiDashboard;
+
+    procedure PodesiPodnosioca;
+    procedure PodesiMenadzera;
+    procedure PodesiNabavku;
+    procedure PodesiMagacionera;
+    procedure PodesiAdministratora;
+
+
+    // ========================================================
+    // KARTICE
+    // ========================================================
+
+    procedure PodesiKarticu(
+      AKartica: Integer;
+      const ANaslov: string;
+      const AOpis: string;
+      AVrednost: Integer;
+      const AIkonica: string;
+      ABoja: TColor;
+      ASvetlaBoja: TColor
+    );
+
+    procedure PoveziKlikoveKartica;
+
+    procedure Kartica1Click(Sender: TObject);
+    procedure Kartica2Click(Sender: TObject);
+    procedure Kartica3Click(Sender: TObject);
+    procedure Kartica4Click(Sender: TObject);
+
+    procedure OtvoriKarticu(
+      AKartica: Integer
+    );
+
+
+    // ========================================================
+    // IKONICE
+    // ========================================================
+
+    function PronadjiIkonicu(
+      const AFajl: string
+    ): string;
+
+    procedure UcitajIkonicu(
+      AImage: TImage;
+      const AFajl: string
+    );
+
+
+    // ========================================================
+    // BROJEVI
+    // ========================================================
+
+    function IzvrsiBroj(
+      const ASQL: string
+    ): Integer;
+
+    function IzvrsiBrojZaKorisnika(
+      const ASQL: string
+    ): Integer;
+
+
+    // ========================================================
+    // TABELA
+    // ========================================================
+
+    procedure UcitajTabelu;
+    procedure PodesiKolone;
+
+  public
+
+    constructor Create(
+      AOwner: TComponent
+    ); override;
+
+
+    procedure PrikaziZaKorisnika(
+      AKorisnikID: Integer;
+      const AUloga: string
+    );
+
+
+    procedure Osvezi;
+
+
+    property KorisnikID: Integer
+      read FKorisnikID;
+
+    property Uloga: string
+      read FUloga;
+
+  end;
+
+implementation
+
+uses
+  uLogin,
+  uGlavna;
+
+{$R *.dfm}
+
+
+// ============================================================
+// CONSTRUCTOR
+// ============================================================
+
+constructor TfraDashboard.Create(
+  AOwner: TComponent
+);
+begin
+  inherited Create(AOwner);
+
+
+  // ==========================================================
+  // QUERY
+  // ==========================================================
+
+  FQryDashboard :=
+    TFDQuery.Create(Self);
+
+  FQryDashboard.Connection :=
+    frmLogin.FDConnection1;
+
+
+  // ==========================================================
+  // DATASOURCE
+  // ==========================================================
+
+  FDsDashboard :=
+    TDataSource.Create(Self);
+
+  FDsDashboard.DataSet :=
+    FQryDashboard;
+
+
+  dbgDashboard.DataSource :=
+    FDsDashboard;
+
+  dbgDashboard.ReadOnly :=
+    True;
+
+  dbgDashboard.Options :=
+    dbgDashboard.Options + [dgRowSelect];
+
+
+  // ==========================================================
+  // KARTICE
+  // ==========================================================
+
+  pnlKartica1.BevelOuter := bvNone;
+  pnlKartica2.BevelOuter := bvNone;
+  pnlKartica3.BevelOuter := bvNone;
+  pnlKartica4.BevelOuter := bvNone;
+
+
+  pnlKartica1.Color := clWhite;
+  pnlKartica2.Color := clWhite;
+  pnlKartica3.Color := clWhite;
+  pnlKartica4.Color := clWhite;
+
+
+  pnlKartica1.ParentBackground := False;
+  pnlKartica2.ParentBackground := False;
+  pnlKartica3.ParentBackground := False;
+  pnlKartica4.ParentBackground := False;
+
+
+  // ==========================================================
+  // SHAPE - 60 x 60
+  // ==========================================================
+
+  shpIkona1.Shape := stCircle;
+  shpIkona2.Shape := stCircle;
+  shpIkona3.Shape := stCircle;
+  shpIkona4.Shape := stCircle;
+
+
+  shpIkona1.Width := 60;
+  shpIkona1.Height := 60;
+
+  shpIkona2.Width := 60;
+  shpIkona2.Height := 60;
+
+  shpIkona3.Width := 60;
+  shpIkona3.Height := 60;
+
+  shpIkona4.Width := 60;
+  shpIkona4.Height := 60;
+
+
+  shpIkona1.Pen.Style := psClear;
+  shpIkona2.Pen.Style := psClear;
+  shpIkona3.Pen.Style := psClear;
+  shpIkona4.Pen.Style := psClear;
+
+
+  // ==========================================================
+  // IKONE - 48 x 48
+  // ==========================================================
+
+  imgKartica1.Width := 48;
+  imgKartica1.Height := 48;
+
+  imgKartica2.Width := 48;
+  imgKartica2.Height := 48;
+
+  imgKartica3.Width := 48;
+  imgKartica3.Height := 48;
+
+  imgKartica4.Width := 48;
+  imgKartica4.Height := 48;
+
+
+  imgKartica1.Proportional := True;
+  imgKartica2.Proportional := True;
+  imgKartica3.Proportional := True;
+  imgKartica4.Proportional := True;
+
+
+  imgKartica1.Center := True;
+  imgKartica2.Center := True;
+  imgKartica3.Center := True;
+  imgKartica4.Center := True;
+
+
+  imgKartica1.BringToFront;
+  imgKartica2.BringToFront;
+  imgKartica3.BringToFront;
+  imgKartica4.BringToFront;
+
+
+  // ==========================================================
+  // VREDNOSTI
+  // ==========================================================
+
+  lblKartica1Vrednost.Font.Style := [fsBold];
+  lblKartica2Vrednost.Font.Style := [fsBold];
+  lblKartica3Vrednost.Font.Style := [fsBold];
+  lblKartica4Vrednost.Font.Style := [fsBold];
+
+
+  lblKartica1Vrednost.StyleElements :=
+    lblKartica1Vrednost.StyleElements - [seFont];
+
+  lblKartica2Vrednost.StyleElements :=
+    lblKartica2Vrednost.StyleElements - [seFont];
+
+  lblKartica3Vrednost.StyleElements :=
+    lblKartica3Vrednost.StyleElements - [seFont];
+
+  lblKartica4Vrednost.StyleElements :=
+    lblKartica4Vrednost.StyleElements - [seFont];
+
+
+  // ==========================================================
+  // KLIKOVI
+  // ==========================================================
+
+  PoveziKlikoveKartica;
+
+
+  FKorisnikID := 0;
+  FUloga := '';
+
+end;
+
+
+// ============================================================
+// PRIKAŽI DASHBOARD
+// ============================================================
+
+procedure TfraDashboard.PrikaziZaKorisnika(
+  AKorisnikID: Integer;
+  const AUloga: string
+);
+begin
+
+  FKorisnikID :=
+    AKorisnikID;
+
+  FUloga :=
+    AUloga;
+
+
+  Osvezi;
+
+end;
+
+
+// ============================================================
+// OSVEŽAVANJE
+// ============================================================
+
+procedure TfraDashboard.Osvezi;
+begin
+
+  if FUloga = '' then
+    Exit;
+
+
+  PodesiDashboard;
+
+  UcitajTabelu;
+
+end;
+
+
+// ============================================================
+// DASHBOARD PREMA ULOZI
+// ============================================================
+
+procedure TfraDashboard.PodesiDashboard;
+begin
+
+  if SameText(
+    FUloga,
+    'Podnosilac'
+  ) then
+    PodesiPodnosioca
+
+
+  else if SameText(
+    FUloga,
+    'Menadzer'
+  ) then
+    PodesiMenadzera
+
+
+  else if SameText(
+    FUloga,
+    'Nabavka'
+  ) then
+    PodesiNabavku
+
+
+  else if SameText(
+    FUloga,
+    'Magacioner'
+  ) then
+    PodesiMagacionera
+
+
+  else if SameText(
+    FUloga,
+    'Administrator'
+  ) then
+    PodesiAdministratora;
+
+end;
+
+
+// ============================================================
+// PODNOSILAC
+// ============================================================
+
+procedure TfraDashboard.PodesiPodnosioca;
+begin
+
+  lblOpis.Caption :=
+    'Pregled vaših zahteva i aktivnih nabavki';
+
+
+  // ==========================================================
+  // 1 - MOJI ZAHTEVI
+  // LJUBIČASTA
+  // ==========================================================
+
+  PodesiKarticu(
+    1,
+    'Moji zahtevi',
+    'Ukupno vaših zahteva',
+
+    IzvrsiBrojZaKorisnika(
+      'SELECT COUNT(*) ' +
+      'FROM requests ' +
+      'WHERE user_id = :user_id'
+    ),
+
+    'icons8-clipboard-48.png',
+
+    RGB(124, 77, 255),
+    RGB(238, 232, 255)
+  );
+
+
+  // ==========================================================
+  // 2 - NA ČEKANJU
+  // NARANDŽASTA
+  // ==========================================================
+
+  PodesiKarticu(
+    2,
+    'Na čekanju',
+    'Zahteva na čekanju',
+
+    IzvrsiBrojZaKorisnika(
+      'SELECT COUNT(*) ' +
+      'FROM requests ' +
+      'WHERE user_id = :user_id ' +
+      'AND status = ''pending'''
+    ),
+
+    'icons8-clock-48.png',
+
+    RGB(255, 171, 0),
+    RGB(255, 244, 214)
+  );
+
+
+  // ==========================================================
+  // 3 - ODOBRENI
+  // ZELENA
+  // ==========================================================
+
+  PodesiKarticu(
+    3,
+    'Odobreni',
+    'Zahteva je odobreno',
+
+    IzvrsiBrojZaKorisnika(
+      'SELECT COUNT(*) ' +
+      'FROM requests ' +
+      'WHERE user_id = :user_id ' +
+      'AND status = ''approved'''
+    ),
+
+    'icons8-complete-48.png',
+
+    RGB(39, 183, 92),
+    RGB(224, 247, 232)
+  );
+
+
+  // ==========================================================
+  // 4 - AKTIVNE NABAVKE
+  // LJUBIČASTA
+  // ==========================================================
+
+  PodesiKarticu(
+    4,
+    'Aktivne nabavke',
+    'Nabavki u toku',
+
+    IzvrsiBrojZaKorisnika(
+      'SELECT COUNT(*) ' +
+      'FROM orders ord ' +
+      'INNER JOIN requests r ' +
+      'ON r.id = ord.request_id ' +
+      'WHERE r.user_id = :user_id ' +
+      'AND ord.status <> ''completed'''
+    ),
+
+    'icons8-shopping-cart-48.png',
+
+    RGB(187, 77, 255),
+    RGB(245, 232, 255)
+  );
+
+end;
+
+
+// ============================================================
+// MENADŽER
+// ============================================================
+
+procedure TfraDashboard.PodesiMenadzera;
+begin
+
+  lblOpis.Caption :=
+    'Pregled zahteva koji čekaju odluku i aktivnih nabavki';
+
+
+  // 1
+  PodesiKarticu(
+    1,
+    'Na čekanju',
+    'Zahteva čeka odobrenje',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM requests ' +
+      'WHERE status = ''pending'''
+    ),
+
+    'icons8-clock-48.png',
+
+    RGB(255, 171, 0),
+    RGB(255, 244, 214)
+  );
+
+
+  // 2
+  PodesiKarticu(
+    2,
+    'Hitni zahtevi',
+    'Zahteva visokog prioriteta',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM requests ' +
+      'WHERE status = ''pending'' ' +
+      'AND priority = ''Visok'''
+    ),
+
+    'icons8-danger-48.png',
+
+    RGB(255, 82, 82),
+    RGB(255, 232, 232)
+  );
+
+
+  // 3
+  PodesiKarticu(
+    3,
+    'Odobreni',
+    'Zahteva je odobreno',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM requests ' +
+      'WHERE status = ''approved'''
+    ),
+
+    'icons8-complete-48.png',
+
+    RGB(39, 183, 92),
+    RGB(224, 247, 232)
+  );
+
+
+  // 4
+  PodesiKarticu(
+    4,
+    'Aktivne nabavke',
+    'Nabavki u toku',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM orders ' +
+      'WHERE status <> ''completed'''
+    ),
+
+    'icons8-shopping-cart-48.png',
+
+    RGB(124, 77, 255),
+    RGB(238, 232, 255)
+  );
+
+end;
+
+
+// ============================================================
+// NABAVKA
+// ============================================================
+
+procedure TfraDashboard.PodesiNabavku;
+begin
+
+  lblOpis.Caption :=
+    'Pregled odobrenih zahteva, ponuda i narudžbenica';
+
+
+  // ==========================================================
+  // 1 - ODOBRENI ZAHTEVI
+  // PLAVA
+  // ==========================================================
+
+  PodesiKarticu(
+    1,
+    'Odobreni zahtevi',
+    'Spremno za obradu',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM requests r ' +
+      'WHERE r.status = ''approved'' ' +
+      'AND NOT EXISTS (' +
+        'SELECT 1 ' +
+        'FROM orders ord ' +
+        'WHERE ord.request_id = r.id' +
+      ')'
+    ),
+
+    'icons8-documents-48.png',
+
+    RGB(33, 150, 243),
+    RGB(227, 242, 253)
+  );
+
+
+  // ==========================================================
+  // 2 - NEMA 3 PONUDE
+  // NARANDŽASTA
+  // ==========================================================
+
+  PodesiKarticu(
+    2,
+    'Bez 3 ponude',
+    'Zahteva nema dovoljno ponuda',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM requests r ' +
+      'WHERE r.status = ''approved'' ' +
+      'AND NOT EXISTS (' +
+        'SELECT 1 FROM orders ord ' +
+        'WHERE ord.request_id = r.id' +
+      ') ' +
+      'AND (' +
+        'SELECT COUNT(*) FROM offers o ' +
+        'WHERE o.request_id = r.id' +
+      ') < 3'
+    ),
+
+    'icons8-price-tag-48.png',
+
+    RGB(255, 171, 0),
+    RGB(255, 244, 214)
+  );
+
+
+  // ==========================================================
+  // 3 - IZABRANE PONUDE
+  // ZELENA
+  // ==========================================================
+
+  PodesiKarticu(
+    3,
+    'Izabrane ponude',
+    'Spremno za narudžbenicu',
+
+    IzvrsiBroj(
+      'SELECT COUNT(DISTINCT o.request_id) ' +
+      'FROM offers o ' +
+      'WHERE o.selected = 1 ' +
+      'AND NOT EXISTS (' +
+        'SELECT 1 ' +
+        'FROM orders ord ' +
+        'WHERE ord.request_id = o.request_id' +
+      ')'
+    ),
+
+    'icons8-check-document-48.png',
+
+    RGB(39, 183, 92),
+    RGB(224, 247, 232)
+  );
+
+
+  // ==========================================================
+  // 4 - NARUDŽBENICE
+  // LJUBIČASTA
+  // ==========================================================
+
+  PodesiKarticu(
+    4,
+    'Narudžbenice',
+    'Aktivnih narudžbenica',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM orders ' +
+      'WHERE status <> ''completed'''
+    ),
+
+    'icons8-shopping-cart-48.png',
+
+    RGB(187, 77, 255),
+    RGB(245, 232, 255)
+  );
+
+end;
+
+
+// ============================================================
+// MAGACIONER
+// ============================================================
+
+procedure TfraDashboard.PodesiMagacionera;
+begin
+
+  lblOpis.Caption :=
+    'Pregled isporuka, prijema robe i stanja magacina';
+
+
+  // ==========================================================
+  // 1 - OČEKIVANE ISPORUKE
+  // NARANDŽASTA
+  // ==========================================================
+
+  PodesiKarticu(
+    1,
+    'Očekivane isporuke',
+    'Isporuka za prijem',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM orders ' +
+      'WHERE status IN (' +
+        '''sent'', ' +
+        '''confirmed'', ' +
+        '''in_progress'', ' +
+        '''delivered''' +
+      ')'
+    ),
+
+    'icons8-truck-48.png',
+
+    RGB(255, 171, 0),
+    RGB(255, 244, 214)
+  );
+
+
+  // ==========================================================
+  // 2 - PRIJEMI ROBE
+  // PLAVA
+  // ==========================================================
+
+  PodesiKarticu(
+    2,
+    'Prijemi robe',
+    'Evidentiranih prijema',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM deliveries'
+    ),
+
+    'icons8-get-48.png',
+
+    RGB(33, 150, 243),
+    RGB(227, 242, 253)
+  );
+
+
+  // ==========================================================
+  // 3 - MATERIJALI
+  // NARANDŽASTA
+  // ==========================================================
+
+  PodesiKarticu(
+    3,
+    'Materijali',
+    'Materijala u magacinu',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM materials'
+    ),
+
+    'icons8-box-48.png',
+
+    RGB(255, 171, 0),
+    RGB(255, 244, 214)
+  );
+
+
+  // ==========================================================
+  // 4 - NISKO STANJE
+  // CRVENA
+  // ==========================================================
+
+  PodesiKarticu(
+    4,
+    'Nisko stanje',
+    'Materijala ispod minimuma',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM materials ' +
+      'WHERE current_quantity <= min_quantity'
+    ),
+
+    'icons8-danger-48.png',
+
+    RGB(255, 82, 82),
+    RGB(255, 232, 232)
+  );
+
+end;
+
+
+// ============================================================
+// ADMINISTRATOR
+// ============================================================
+
+procedure TfraDashboard.PodesiAdministratora;
+begin
+
+  lblOpis.Caption :=
+    'Pregled korisnika, materijala i osnovnih podataka sistema';
+
+
+  // 1
+  PodesiKarticu(
+    1,
+    'Korisnici',
+    'Ukupno korisnika',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM users'
+    ),
+
+    'icons8-users-48.png',
+
+    RGB(33, 150, 243),
+    RGB(227, 242, 253)
+  );
+
+
+  // 2
+  PodesiKarticu(
+    2,
+    'Aktivni korisnici',
+    'Aktivnih korisnika',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM users ' +
+      'WHERE active = 1'
+    ),
+
+    'icons8-checked-user-48.png',
+
+    RGB(39, 183, 92),
+    RGB(224, 247, 232)
+  );
+
+
+  // 3
+  PodesiKarticu(
+    3,
+    'Materijali',
+    'Ukupno materijala',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM materials'
+    ),
+
+    'icons8-box-48.png',
+
+    RGB(255, 171, 0),
+    RGB(255, 244, 214)
+  );
+
+
+  // 4
+  PodesiKarticu(
+    4,
+    'Kategorije',
+    'Kategorija materijala',
+
+    IzvrsiBroj(
+      'SELECT COUNT(*) ' +
+      'FROM material_types'
+    ),
+
+    'icons8-tag-48.png',
+
+    RGB(124, 77, 255),
+    RGB(238, 232, 255)
+  );
+
+end;
+
+
+// ============================================================
+// PODEŠAVANJE JEDNE KARTICE
+// ============================================================
+
+procedure TfraDashboard.PodesiKarticu(
+  AKartica: Integer;
+  const ANaslov: string;
+  const AOpis: string;
+  AVrednost: Integer;
+  const AIkonica: string;
+  ABoja: TColor;
+  ASvetlaBoja: TColor
+);
+var
+  Naslov: TLabel;
+  Vrednost: TLabel;
+  Opis: TLabel;
+
+  Shp: TShape;
+  Img: TImage;
+begin
+
+  Naslov := nil;
+  Vrednost := nil;
+  Opis := nil;
+  Shp := nil;
+  Img := nil;
+
+
+  case AKartica of
+
+    1:
+    begin
+      Naslov := lblKartica1Naslov;
+      Vrednost := lblKartica1Vrednost;
+      Opis := lblKartica1Opis;
+      Shp := shpIkona1;
+      Img := imgKartica1;
+    end;
+
+
+    2:
+    begin
+      Naslov := lblKartica2Naslov;
+      Vrednost := lblKartica2Vrednost;
+      Opis := lblKartica2Opis;
+      Shp := shpIkona2;
+      Img := imgKartica2;
+    end;
+
+
+    3:
+    begin
+      Naslov := lblKartica3Naslov;
+      Vrednost := lblKartica3Vrednost;
+      Opis := lblKartica3Opis;
+      Shp := shpIkona3;
+      Img := imgKartica3;
+    end;
+
+
+    4:
+    begin
+      Naslov := lblKartica4Naslov;
+      Vrednost := lblKartica4Vrednost;
+      Opis := lblKartica4Opis;
+      Shp := shpIkona4;
+      Img := imgKartica4;
+    end;
+
+  end;
+
+
+  if not Assigned(Naslov) then
+    Exit;
+
+
+  Naslov.Caption :=
+    ANaslov;
+
+
+  Vrednost.Caption :=
+    IntToStr(
+      AVrednost
+    );
+
+
+  Opis.Caption :=
+    AOpis;
+
+
+  // ==========================================================
+  // BROJ = ISTA BOJA KAO IKONICA
+  // ==========================================================
+
+  Vrednost.StyleElements :=
+    Vrednost.StyleElements - [seFont];
+
+  Vrednost.Font.Color :=
+    ABoja;
+
+
+  // ==========================================================
+  // SHAPE = SVETLA VARIJANTA ISTE BOJE
+  // ==========================================================
+
+  Shp.Brush.Color :=
+    ASvetlaBoja;
+
+  Shp.Pen.Style :=
+    psClear;
+
+
+  UcitajIkonicu(
+    Img,
+    AIkonica
+  );
+
+
+  Img.BringToFront;
+
+end;
+
+
+// ============================================================
+// PUTANJA IKONICE
+// ============================================================
+
+function TfraDashboard.PronadjiIkonicu(
+  const AFajl: string
+): string;
+var
+  Base: string;
+  P: string;
+begin
+
+  Result := '';
+
+
+  Base :=
+    ExtractFilePath(
+      ParamStr(0)
+    );
+
+
+  // ==========================================================
+  // 1. assets pored EXE-a
+  // ==========================================================
+
+  P :=
+    Base +
+    'assets\icons\' +
+    AFajl;
+
+
+  if FileExists(P) then
+  begin
+    Result := P;
+    Exit;
+  end;
+
+
+  // ==========================================================
+  // 2. Project\Win32\Debug -> Project\assets\icons
+  // ==========================================================
+
+  P :=
+    ExpandFileName(
+      Base +
+      '..\..\assets\icons\' +
+      AFajl
+    );
+
+
+  if FileExists(P) then
+  begin
+    Result := P;
+    Exit;
+  end;
+
+
+  // ==========================================================
+  // 3. Dodatna rezerva
+  // ==========================================================
+
+  P :=
+    ExpandFileName(
+      Base +
+      '..\..\..\assets\icons\' +
+      AFajl
+    );
+
+
+  if FileExists(P) then
+    Result := P;
+
+end;
+
+
+// ============================================================
+// UČITAJ IKONICU
+// ============================================================
+
+procedure TfraDashboard.UcitajIkonicu(
+  AImage: TImage;
+  const AFajl: string
+);
+var
+  Putanja: string;
+begin
+
+  Putanja :=
+    PronadjiIkonicu(
+      AFajl
+    );
+
+
+  AImage.Picture.Assign(nil);
+
+
+  if Putanja <> '' then
+  begin
+
+    try
+
+      AImage.Picture.LoadFromFile(
+        Putanja
+      );
+
+    except
+      // Ako jedna ikonica nedostaje,
+      // Dashboard i dalje nastavlja da radi.
+    end;
+
+  end;
+
+end;
+
+
+// ============================================================
+// COUNT
+// ============================================================
+
+function TfraDashboard.IzvrsiBroj(
+  const ASQL: string
+): Integer;
+var
+  Q: TFDQuery;
+begin
+
+  Result := 0;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+      ASQL;
+
+
+    Q.Open;
+
+
+    if not Q.IsEmpty then
+      Result :=
+        Q.Fields[0].AsInteger;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// COUNT ZA PRIJAVLJENOG KORISNIKA
+// ============================================================
+
+function TfraDashboard.IzvrsiBrojZaKorisnika(
+  const ASQL: string
+): Integer;
+var
+  Q: TFDQuery;
+begin
+
+  Result := 0;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+      ASQL;
+
+
+    Q.ParamByName(
+      'user_id'
+    ).AsInteger :=
+      FKorisnikID;
+
+
+    Q.Open;
+
+
+    if not Q.IsEmpty then
+      Result :=
+        Q.Fields[0].AsInteger;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// POVEZIVANJE CELE KARTICE NA KLIK
+// ============================================================
+
+procedure TfraDashboard.PoveziKlikoveKartica;
+begin
+
+  // ==========================================================
+  // KARTICA 1
+  // ==========================================================
+
+  pnlKartica1.OnClick := Kartica1Click;
+  lblKartica1Naslov.OnClick := Kartica1Click;
+  lblKartica1Vrednost.OnClick := Kartica1Click;
+  lblKartica1Opis.OnClick := Kartica1Click;
+  shpIkona1.OnClick := Kartica1Click;
+  imgKartica1.OnClick := Kartica1Click;
+
+
+  // ==========================================================
+  // KARTICA 2
+  // ==========================================================
+
+  pnlKartica2.OnClick := Kartica2Click;
+  lblKartica2Naslov.OnClick := Kartica2Click;
+  lblKartica2Vrednost.OnClick := Kartica2Click;
+  lblKartica2Opis.OnClick := Kartica2Click;
+  shpIkona2.OnClick := Kartica2Click;
+  imgKartica2.OnClick := Kartica2Click;
+
+
+  // ==========================================================
+  // KARTICA 3
+  // ==========================================================
+
+  pnlKartica3.OnClick := Kartica3Click;
+  lblKartica3Naslov.OnClick := Kartica3Click;
+  lblKartica3Vrednost.OnClick := Kartica3Click;
+  lblKartica3Opis.OnClick := Kartica3Click;
+  shpIkona3.OnClick := Kartica3Click;
+  imgKartica3.OnClick := Kartica3Click;
+
+
+  // ==========================================================
+  // KARTICA 4
+  // ==========================================================
+
+  pnlKartica4.OnClick := Kartica4Click;
+  lblKartica4Naslov.OnClick := Kartica4Click;
+  lblKartica4Vrednost.OnClick := Kartica4Click;
+  lblKartica4Opis.OnClick := Kartica4Click;
+  shpIkona4.OnClick := Kartica4Click;
+  imgKartica4.OnClick := Kartica4Click;
+
+
+  // ==========================================================
+  // HAND CURSOR
+  // ==========================================================
+
+  pnlKartica1.Cursor := crHandPoint;
+  pnlKartica2.Cursor := crHandPoint;
+  pnlKartica3.Cursor := crHandPoint;
+  pnlKartica4.Cursor := crHandPoint;
+
+
+  imgKartica1.Cursor := crHandPoint;
+  imgKartica2.Cursor := crHandPoint;
+  imgKartica3.Cursor := crHandPoint;
+  imgKartica4.Cursor := crHandPoint;
+
+
+  lblKartica1Naslov.Cursor := crHandPoint;
+  lblKartica2Naslov.Cursor := crHandPoint;
+  lblKartica3Naslov.Cursor := crHandPoint;
+  lblKartica4Naslov.Cursor := crHandPoint;
+
+end;
+
+
+// ============================================================
+// CLICK
+// ============================================================
+
+procedure TfraDashboard.Kartica1Click(
+  Sender: TObject
+);
+begin
+
+  OtvoriKarticu(1);
+
+end;
+
+
+procedure TfraDashboard.Kartica2Click(
+  Sender: TObject
+);
+begin
+
+  OtvoriKarticu(2);
+
+end;
+
+
+procedure TfraDashboard.Kartica3Click(
+  Sender: TObject
+);
+begin
+
+  OtvoriKarticu(3);
+
+end;
+
+
+procedure TfraDashboard.Kartica4Click(
+  Sender: TObject
+);
+begin
+
+  OtvoriKarticu(4);
+
+end;
+
+
+// ============================================================
+// NAVIGACIJA KARTICA
+// ============================================================
+
+procedure TfraDashboard.OtvoriKarticu(
+  AKartica: Integer
+);
+begin
+
+  // ==========================================================
+  // PODNOSILAC
+  // ==========================================================
+
+  if SameText(FUloga, 'Podnosilac') then
+  begin
+
+    case AKartica of
+
+      1:
+        frmGlavna.btnMojiZahtevi.Click;
+
+      2:
+        frmGlavna.btnMojiZahtevi.Click;
+
+      3:
+        frmGlavna.btnMojiZahtevi.Click;
+
+      4:
+        frmGlavna.btnAktivneNabavke.Click;
+
+    end;
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // MENADŽER
+  // ==========================================================
+
+  if SameText(FUloga, 'Menadzer') then
+  begin
+
+    case AKartica of
+
+      1:
+        frmGlavna.btnZahteviOdobrenje.Click;
+
+      2:
+        frmGlavna.btnZahteviOdobrenje.Click;
+
+      3:
+        frmGlavna.btnSviZahtevi.Click;
+
+      4:
+        frmGlavna.btnAktivneNabavke.Click;
+
+    end;
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // NABAVKA
+  // ==========================================================
+
+  if SameText(FUloga, 'Nabavka') then
+  begin
+
+    case AKartica of
+
+      1:
+        frmGlavna.btnOdobreniZahtevi.Click;
+
+      2:
+        frmGlavna.btnPonude.Click;
+
+      3:
+        frmGlavna.btnPonude.Click;
+
+      4:
+        frmGlavna.btnNarudzbenice.Click;
+
+    end;
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // MAGACIONER
+  // ==========================================================
+
+  if SameText(FUloga, 'Magacioner') then
+  begin
+
+    case AKartica of
+
+      1:
+        frmGlavna.btnOcekivaneIsporuke.Click;
+
+      2:
+        frmGlavna.btnPrijemRobe.Click;
+
+      3:
+        frmGlavna.btnMagacin.Click;
+
+      4:
+        frmGlavna.btnMagacin.Click;
+
+    end;
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // ADMINISTRATOR
+  // ==========================================================
+
+  if SameText(FUloga, 'Administrator') then
+  begin
+
+    case AKartica of
+
+      1:
+        frmGlavna.btnKorisnici.Click;
+
+      2:
+        frmGlavna.btnKorisnici.Click;
+
+      3:
+        frmGlavna.btnMaterijali.Click;
+
+      4:
+        frmGlavna.btnOsnovniPodaci.Click;
+
+    end;
+
+  end;
+
+end;
+
+
+// ============================================================
+// UČITAVANJE TABELE
+// ============================================================
+
+procedure TfraDashboard.UcitajTabelu;
+begin
+
+  FQryDashboard.Close;
+
+
+  // ==========================================================
+  // PODNOSILAC
+  // ==========================================================
+
+  if SameText(FUloga, 'Podnosilac') then
+  begin
+
+    lblTabelaNaslov.Caption :=
+      'Moji najnoviji zahtevi';
+
+
+    FQryDashboard.SQL.Text :=
+
+      'SELECT ' +
+
+      'CAST(' +
+        '''Z-'' || ' +
+        'strftime(''%Y'', r.created_at) || ' +
+        '''-'' || printf(''%04d'', r.id) ' +
+      'AS VARCHAR(30)) AS zahtev, ' +
+
+      'CAST(m.name AS VARCHAR(150)) AS materijal, ' +
+
+      'CAST(r.priority AS VARCHAR(30)) AS prioritet, ' +
+
+      'CAST(' +
+        'CASE r.status ' +
+          'WHEN ''pending'' THEN ''Na čekanju'' ' +
+          'WHEN ''approved'' THEN ''Odobren'' ' +
+          'WHEN ''rejected'' THEN ''Odbijen'' ' +
+        'END ' +
+      'AS VARCHAR(50)) AS status_prikaz, ' +
+
+      'strftime(''%d.%m.%Y'', r.needed_by) AS datum ' +
+
+      'FROM requests r ' +
+
+      'INNER JOIN materials m ' +
+      'ON m.id = r.material_id ' +
+
+      'WHERE r.user_id = :user_id ' +
+
+      'ORDER BY r.created_at DESC, r.id DESC ' +
+
+      'LIMIT 10';
+
+
+    FQryDashboard.ParamByName(
+      'user_id'
+    ).AsInteger :=
+      FKorisnikID;
+
+  end
+
+
+  // ==========================================================
+  // MENADŽER
+  // ==========================================================
+
+  else if SameText(FUloga, 'Menadzer') then
+  begin
+
+    lblTabelaNaslov.Caption :=
+      'Zahtevi koji čekaju odobrenje';
+
+
+    FQryDashboard.SQL.Text :=
+
+      'SELECT ' +
+
+      'CAST(' +
+        '''Z-'' || ' +
+        'strftime(''%Y'', r.created_at) || ' +
+        '''-'' || printf(''%04d'', r.id) ' +
+      'AS VARCHAR(30)) AS zahtev, ' +
+
+      'CAST(u.name AS VARCHAR(150)) AS podnosilac, ' +
+
+      'CAST(m.name AS VARCHAR(150)) AS materijal, ' +
+
+      'CAST(r.priority AS VARCHAR(30)) AS prioritet, ' +
+
+      'strftime(''%d.%m.%Y'', r.needed_by) AS datum ' +
+
+      'FROM requests r ' +
+
+      'INNER JOIN users u ' +
+      'ON u.id = r.user_id ' +
+
+      'INNER JOIN materials m ' +
+      'ON m.id = r.material_id ' +
+
+      'WHERE r.status = ''pending'' ' +
+
+      'ORDER BY ' +
+        'CASE r.priority ' +
+          'WHEN ''Visok'' THEN 0 ' +
+          'WHEN ''Srednji'' THEN 1 ' +
+          'ELSE 2 ' +
+        'END, ' +
+        'r.needed_by ASC ' +
+
+      'LIMIT 10';
+
+  end
+
+
+  // ==========================================================
+  // NABAVKA
+  // ==========================================================
+
+  else if SameText(FUloga, 'Nabavka') then
+  begin
+
+    lblTabelaNaslov.Caption :=
+      'Odobreni zahtevi za obradu';
+
+
+    FQryDashboard.SQL.Text :=
+
+      'SELECT ' +
+
+      'CAST(' +
+        '''Z-'' || ' +
+        'strftime(''%Y'', r.created_at) || ' +
+        '''-'' || printf(''%04d'', r.id) ' +
+      'AS VARCHAR(30)) AS zahtev, ' +
+
+      'CAST(m.name AS VARCHAR(150)) AS materijal, ' +
+
+      'COUNT(o.id) AS broj_ponuda, ' +
+
+      'CAST(' +
+        'CASE ' +
+          'WHEN SUM(CASE WHEN o.selected = 1 THEN 1 ELSE 0 END) > 0 ' +
+          'THEN ''Da'' ' +
+          'ELSE ''Ne'' ' +
+        'END ' +
+      'AS VARCHAR(20)) AS izabrana_ponuda, ' +
+
+      'strftime(''%d.%m.%Y'', r.needed_by) AS datum ' +
+
+      'FROM requests r ' +
+
+      'INNER JOIN materials m ' +
+      'ON m.id = r.material_id ' +
+
+      'LEFT JOIN offers o ' +
+      'ON o.request_id = r.id ' +
+
+      'WHERE r.status = ''approved'' ' +
+
+      'AND NOT EXISTS (' +
+        'SELECT 1 ' +
+        'FROM orders ord ' +
+        'WHERE ord.request_id = r.id' +
+      ') ' +
+
+      'GROUP BY ' +
+        'r.id, r.created_at, m.name, r.needed_by ' +
+
+      'ORDER BY r.needed_by ASC ' +
+
+      'LIMIT 10';
+
+  end
+
+
+  // ==========================================================
+  // MAGACIONER
+  // ==========================================================
+
+  else if SameText(FUloga, 'Magacioner') then
+  begin
+
+    lblTabelaNaslov.Caption :=
+      'Očekivane isporuke';
+
+
+    FQryDashboard.SQL.Text :=
+
+      'SELECT ' +
+
+      'CAST(' +
+        '''N-'' || printf(''%04d'', ord.id) ' +
+      'AS VARCHAR(30)) AS narudzbenica, ' +
+
+      'CAST(s.name AS VARCHAR(150)) AS dobavljac, ' +
+
+      'CAST(m.name AS VARCHAR(150)) AS materijal, ' +
+
+      'strftime(''%d.%m.%Y'', ord.expected_date) AS datum, ' +
+
+      'CAST(' +
+        'CASE ord.status ' +
+          'WHEN ''sent'' THEN ''Poslata'' ' +
+          'WHEN ''confirmed'' THEN ''Potvrđena'' ' +
+          'WHEN ''in_progress'' THEN ''U toku'' ' +
+          'WHEN ''delivered'' THEN ''Isporučena'' ' +
+          'ELSE ord.status ' +
+        'END ' +
+      'AS VARCHAR(50)) AS status_prikaz ' +
+
+      'FROM orders ord ' +
+
+      'INNER JOIN requests r ' +
+      'ON r.id = ord.request_id ' +
+
+      'INNER JOIN materials m ' +
+      'ON m.id = r.material_id ' +
+
+      'INNER JOIN suppliers s ' +
+      'ON s.id = ord.supplier_id ' +
+
+      'WHERE ord.status IN (' +
+        '''sent'', ' +
+        '''confirmed'', ' +
+        '''in_progress'', ' +
+        '''delivered''' +
+      ') ' +
+
+      'ORDER BY ord.expected_date ASC ' +
+
+      'LIMIT 10';
+
+  end
+
+
+  // ==========================================================
+  // ADMINISTRATOR
+  // ==========================================================
+
+  else if SameText(FUloga, 'Administrator') then
+  begin
+
+    lblTabelaNaslov.Caption :=
+      'Korisnici sistema';
+
+
+    FQryDashboard.SQL.Text :=
+
+      'SELECT ' +
+
+      'CAST(username AS VARCHAR(100)) AS username, ' +
+
+      'CAST(name AS VARCHAR(150)) AS ime, ' +
+
+      'CAST(role AS VARCHAR(50)) AS uloga, ' +
+
+      'CAST(' +
+        'CASE ' +
+          'WHEN active = 1 THEN ''Aktivan'' ' +
+          'ELSE ''Neaktivan'' ' +
+        'END ' +
+      'AS VARCHAR(30)) AS status_prikaz ' +
+
+      'FROM users ' +
+
+      'ORDER BY id DESC ' +
+
+      'LIMIT 10';
+
+  end;
+
+
+  try
+
+    FQryDashboard.Open;
+
+    PodesiKolone;
+
+
+  except
+
+    on E: Exception do
+    begin
+
+      ShowMessage(
+        'Greška prilikom učitavanja Dashboard-a:' +
+        sLineBreak +
+        E.Message
+      );
+
+    end;
+
+  end;
+
+end;
+
+
+// ============================================================
+// KOLONE TABELE
+// ============================================================
+
+procedure TfraDashboard.PodesiKolone;
+begin
+
+  dbgDashboard.Columns.Clear;
+
+
+  // ==========================================================
+  // PODNOSILAC
+  // ==========================================================
+
+  if SameText(FUloga, 'Podnosilac') then
+  begin
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'zahtev';
+      Title.Caption := 'Zahtev';
+      Width := 115;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'materijal';
+      Title.Caption := 'Materijal';
+      Width := 170;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'prioritet';
+      Title.Caption := 'Prioritet';
+      Width := 90;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'status_prikaz';
+      Title.Caption := 'Status';
+      Width := 100;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'datum';
+      Title.Caption := 'Datum potrebe';
+      Width := 110;
+    end;
+
+  end
+
+
+  // ==========================================================
+  // MENADŽER
+  // ==========================================================
+
+  else if SameText(FUloga, 'Menadzer') then
+  begin
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'zahtev';
+      Title.Caption := 'Zahtev';
+      Width := 115;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'podnosilac';
+      Title.Caption := 'Podnosilac';
+      Width := 150;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'materijal';
+      Title.Caption := 'Materijal';
+      Width := 160;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'prioritet';
+      Title.Caption := 'Prioritet';
+      Width := 90;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'datum';
+      Title.Caption := 'Datum potrebe';
+      Width := 110;
+    end;
+
+  end
+
+
+  // ==========================================================
+  // NABAVKA
+  // ==========================================================
+
+  else if SameText(FUloga, 'Nabavka') then
+  begin
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'zahtev';
+      Title.Caption := 'Zahtev';
+      Width := 115;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'materijal';
+      Title.Caption := 'Materijal';
+      Width := 170;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'broj_ponuda';
+      Title.Caption := 'Ponude';
+      Width := 75;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'izabrana_ponuda';
+      Title.Caption := 'Izabrana';
+      Width := 90;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'datum';
+      Title.Caption := 'Datum potrebe';
+      Width := 110;
+    end;
+
+  end
+
+
+  // ==========================================================
+  // MAGACIONER
+  // ==========================================================
+
+  else if SameText(FUloga, 'Magacioner') then
+  begin
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'narudzbenica';
+      Title.Caption := 'Narudžbenica';
+      Width := 110;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'dobavljac';
+      Title.Caption := 'Dobavljač';
+      Width := 160;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'materijal';
+      Title.Caption := 'Materijal';
+      Width := 160;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'datum';
+      Title.Caption := 'Očekivani datum';
+      Width := 120;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'status_prikaz';
+      Title.Caption := 'Status';
+      Width := 100;
+    end;
+
+  end
+
+
+  // ==========================================================
+  // ADMIN
+  // ==========================================================
+
+  else if SameText(FUloga, 'Administrator') then
+  begin
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'username';
+      Title.Caption := 'Korisničko ime';
+      Width := 130;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'ime';
+      Title.Caption := 'Ime i prezime';
+      Width := 180;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'uloga';
+      Title.Caption := 'Uloga';
+      Width := 130;
+    end;
+
+    with dbgDashboard.Columns.Add do
+    begin
+      FieldName := 'status_prikaz';
+      Title.Caption := 'Status';
+      Width := 100;
+    end;
+
+  end;
+
+end;
+
+end.

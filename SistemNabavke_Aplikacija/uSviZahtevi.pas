@@ -1,0 +1,936 @@
+﻿unit uSviZahtevi;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.StdCtrls,
+  Vcl.ExtCtrls,
+  Vcl.Grids,
+  Vcl.DBGrids,
+
+  Data.DB,
+
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Param,
+  FireDAC.Stan.Error,
+  FireDAC.DatS,
+  FireDAC.Phys.Intf,
+  FireDAC.DApt.Intf,
+  FireDAC.Stan.Async,
+  FireDAC.DApt,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client;
+
+type
+  TfraSviZahtevi = class(TFrame)
+
+    pnlHeader: TPanel;
+    lblNaslov: TLabel;
+    lblOpis: TLabel;
+
+    pnlDetalji: TPanel;
+    lblDetaljiNaslov: TLabel;
+    lblIDZahteva: TLabel;
+
+    lblMaterijalNaslov: TLabel;
+    lblMaterijalVrednost: TLabel;
+
+    lblKolicinaNaslov: TLabel;
+    lblKolicinaVrednost: TLabel;
+
+    lblPrioritetNaslov: TLabel;
+    lblPrioritetVrednost: TLabel;
+
+    lblDatumNaslov: TLabel;
+    lblDatumVrednost: TLabel;
+
+    lblRazlogNaslov: TLabel;
+
+    lblStatusNaslov: TLabel;
+    lblStatusVrednost: TLabel;
+
+    memRazlog: TMemo;
+
+    lblPodnosilacNaslov: TLabel;
+    lblPodnosilacVrednost: TLabel;
+
+    memKomentar: TMemo;
+    lblKomentarNaslov: TLabel;
+    pnlTabela: TPanel;
+    lblListaNaslov: TLabel;
+    dbgZahtevi: TDBGrid;
+
+  private
+
+    // Query i DataSource pravimo iz koda
+    FQryZahtevi: TFDQuery;
+    FDsZahtevi: TDataSource;
+
+    procedure UcitajZahteve;
+    procedure PodesiKolone;
+
+    procedure PrikaziIzabraniZahtev;
+    procedure OcistiDetalje;
+
+    procedure qryZahteviAfterScroll(DataSet: TDataSet);
+
+    function BojaPrioriteta(
+      const APrioritet: string
+    ): TColor;
+
+    function BojaStatusa(
+      const AStatus: string
+    ): TColor;
+
+    procedure dbgZahteviDrawColumnCell(
+      Sender: TObject;
+      const Rect: TRect;
+      DataCol: Integer;
+      Column: TColumn;
+      State: TGridDrawState
+    );
+
+  public
+
+    constructor Create(AOwner: TComponent); override;
+
+    procedure Osvezi;
+
+  end;
+
+implementation
+
+uses
+  uLogin;
+
+{$R *.dfm}
+
+
+// ============================================================
+// KREIRANJE FRAME-A
+// ============================================================
+
+constructor TfraSviZahtevi.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+
+
+  // ==========================================================
+  // QUERY
+  // ==========================================================
+
+  FQryZahtevi :=
+    TFDQuery.Create(Self);
+
+  FQryZahtevi.Connection :=
+    frmLogin.FDConnection1;
+
+
+  // ==========================================================
+  // DATASOURCE
+  // ==========================================================
+
+  FDsZahtevi :=
+    TDataSource.Create(Self);
+
+  FDsZahtevi.DataSet :=
+    FQryZahtevi;
+
+
+  // ==========================================================
+  // DBGRID
+  // ==========================================================
+
+  dbgZahtevi.DataSource :=
+    FDsZahtevi;
+
+  dbgZahtevi.ReadOnly :=
+    True;
+
+  dbgZahtevi.Options :=
+    dbgZahtevi.Options + [dgRowSelect];
+
+
+  // Bojenje prioriteta i statusa
+  dbgZahtevi.OnDrawColumnCell :=
+    dbgZahteviDrawColumnCell;
+
+
+  // ==========================================================
+  // DOGAĐAJ QUERY-A
+  // ==========================================================
+
+  FQryZahtevi.AfterScroll :=
+    qryZahteviAfterScroll;
+
+
+  // ==========================================================
+  // DETALJI
+  // ==========================================================
+
+  memRazlog.ReadOnly :=
+    True;
+
+  memKomentar.ReadOnly :=
+    True;
+
+
+  // Dozvoljavamo naše boje fonta
+  lblPrioritetVrednost.StyleElements :=
+    lblPrioritetVrednost.StyleElements - [seFont];
+
+  lblStatusVrednost.StyleElements :=
+    lblStatusVrednost.StyleElements - [seFont];
+
+  lblPrioritetVrednost.Font.Style :=
+    [fsBold];
+
+  lblStatusVrednost.Font.Style :=
+    [fsBold];
+
+
+  // ==========================================================
+  // POČETNO STANJE
+  // ==========================================================
+
+  OcistiDetalje;
+
+  Osvezi;
+end;
+
+
+// ============================================================
+// OSVEŽAVANJE
+// ============================================================
+
+procedure TfraSviZahtevi.Osvezi;
+begin
+  UcitajZahteve;
+end;
+
+
+// ============================================================
+// BOJA PRIORITETA
+// ============================================================
+
+function TfraSviZahtevi.BojaPrioriteta(
+  const APrioritet: string
+): TColor;
+begin
+
+  if SameText(APrioritet, 'Visok') then
+  begin
+    // Crveno
+    Result := RGB(220, 38, 38);
+  end
+
+  else if SameText(APrioritet, 'Srednji') then
+  begin
+    // Narandžasto
+    Result := RGB(245, 158, 11);
+  end
+
+  else if SameText(APrioritet, 'Nizak') then
+  begin
+    // Zeleno
+    Result := RGB(22, 163, 74);
+  end
+
+  else
+  begin
+    Result := clWindowText;
+  end;
+
+end;
+
+
+// ============================================================
+// BOJA STATUSA
+// ============================================================
+
+function TfraSviZahtevi.BojaStatusa(
+  const AStatus: string
+): TColor;
+begin
+
+  if SameText(AStatus, 'pending') then
+  begin
+    // Na čekanju - narandžasto
+    Result := RGB(245, 158, 11);
+  end
+
+  else if SameText(AStatus, 'approved') then
+  begin
+    // Odobren - zeleno
+    Result := RGB(22, 163, 74);
+  end
+
+  else if SameText(AStatus, 'rejected') then
+  begin
+    // Odbijen - crveno
+    Result := RGB(220, 38, 38);
+  end
+
+  else
+  begin
+    Result := clWindowText;
+  end;
+
+end;
+
+
+// ============================================================
+// UČITAVANJE SVIH ZAHTEVA
+// ============================================================
+
+procedure TfraSviZahtevi.UcitajZahteve;
+begin
+
+  FQryZahtevi.Close;
+
+
+  FQryZahtevi.SQL.Text :=
+
+    'SELECT ' +
+
+    // Interni ID
+    'r.id, ' +
+
+    // --------------------------------------------------------
+    // Šifra zahteva
+    // Z-2026-0001
+    // --------------------------------------------------------
+
+    '''Z-'' || ' +
+    'strftime(''%Y'', r.created_at) || ' +
+    '''-'' || ' +
+    'printf(''%04d'', r.id) AS sifra, ' +
+
+
+    // --------------------------------------------------------
+    // Podnosilac
+    // --------------------------------------------------------
+
+    'CAST(u.name AS VARCHAR(100)) ' +
+    'AS podnosilac, ' +
+
+
+    // --------------------------------------------------------
+    // Materijal
+    // --------------------------------------------------------
+
+    'CAST(m.name AS VARCHAR(100)) ' +
+    'AS materijal, ' +
+
+
+    // --------------------------------------------------------
+    // Količina + jedinica mere
+    // --------------------------------------------------------
+
+    'CAST(' +
+    'printf(''%g'', r.quantity) || ' +
+    ''' '' || m.unit ' +
+    'AS VARCHAR(50)) ' +
+    'AS kolicina, ' +
+
+
+    // --------------------------------------------------------
+    // Prioritet
+    // --------------------------------------------------------
+
+    'CAST(r.priority AS VARCHAR(30)) ' +
+    'AS prioritet, ' +
+
+
+    // --------------------------------------------------------
+    // DATUM POTREBE
+    // --------------------------------------------------------
+
+    'strftime(''%d.%m.%Y'', r.needed_by) ' +
+    'AS datum_potrebe, ' +
+
+
+    // --------------------------------------------------------
+    // Razlog
+    // --------------------------------------------------------
+
+    'CAST(r.reason AS VARCHAR(1000)) ' +
+    'AS razlog, ' +
+
+
+    // --------------------------------------------------------
+    // Status iz baze
+    // --------------------------------------------------------
+
+    'CAST(r.status AS VARCHAR(30)) ' +
+    'AS status_raw, ' +
+
+
+    // --------------------------------------------------------
+    // Status za prikaz korisniku
+    // --------------------------------------------------------
+
+    'CAST(' +
+
+      'CASE r.status ' +
+
+        'WHEN ''pending'' ' +
+        'THEN ''Na čekanju'' ' +
+
+        'WHEN ''approved'' ' +
+        'THEN ''Odobren'' ' +
+
+        'WHEN ''rejected'' ' +
+        'THEN ''Odbijen'' ' +
+
+        'ELSE r.status ' +
+
+      'END ' +
+
+    'AS VARCHAR(30)) ' +
+    'AS status_prikaz, ' +
+
+
+    // --------------------------------------------------------
+    // Komentar menadžera
+    // --------------------------------------------------------
+
+    'CAST(' +
+      'COALESCE(r.manager_comment, '''') ' +
+    'AS VARCHAR(1000)) ' +
+    'AS komentar ' +
+
+
+    // ========================================================
+    // TABELE
+    // ========================================================
+
+    'FROM requests r ' +
+
+    'INNER JOIN materials m ' +
+    'ON m.id = r.material_id ' +
+
+    'INNER JOIN users u ' +
+    'ON u.id = r.user_id ' +
+
+
+    // ========================================================
+    // SVI ZAHTEVI
+    // ========================================================
+    // NEMA WHERE user_id
+    // NEMA WHERE status
+    // ========================================================
+
+
+    // Najnovije podneti prvo
+    'ORDER BY r.created_at DESC, r.id DESC';
+
+
+  try
+
+    FQryZahtevi.Open;
+
+    PodesiKolone;
+
+    PrikaziIzabraniZahtev;
+
+
+  except
+
+    on E: Exception do
+    begin
+
+      ShowMessage(
+        'Greška prilikom učitavanja zahteva:' +
+        sLineBreak +
+        E.Message
+      );
+
+      OcistiDetalje;
+
+    end;
+
+  end;
+
+end;
+
+
+// ============================================================
+// PODEŠAVANJE KOLONA
+// ============================================================
+
+procedure TfraSviZahtevi.PodesiKolone;
+begin
+
+  dbgZahtevi.Columns.Clear;
+
+
+  // ==========================================================
+  // ID
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'sifra';
+    Title.Caption := 'ID';
+    Width := 105;
+  end;
+
+
+  // ==========================================================
+  // PODNOSILAC
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'podnosilac';
+    Title.Caption := 'Podnosilac';
+    Width := 130;
+  end;
+
+
+  // ==========================================================
+  // MATERIJAL
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'materijal';
+    Title.Caption := 'Materijal';
+    Width := 145;
+  end;
+
+
+  // ==========================================================
+  // KOLIČINA
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'kolicina';
+    Title.Caption := 'Količina';
+    Width := 85;
+  end;
+
+
+  // ==========================================================
+  // PRIORITET
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'prioritet';
+    Title.Caption := 'Prioritet';
+    Width := 80;
+  end;
+
+
+  // ==========================================================
+  // STATUS
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'status_prikaz';
+    Title.Caption := 'Status';
+    Width := 90;
+  end;
+
+
+  // ==========================================================
+  // DATUM POTREBE
+  // ==========================================================
+
+  with dbgZahtevi.Columns.Add do
+  begin
+    FieldName := 'datum_potrebe';
+    Title.Caption := 'Datum potrebe';
+    Width := 100;
+  end;
+
+end;
+
+
+// ============================================================
+// BOJENJE PRIORITETA I STATUSA U TABELI
+// ============================================================
+
+procedure TfraSviZahtevi.dbgZahteviDrawColumnCell(
+  Sender: TObject;
+  const Rect: TRect;
+  DataCol: Integer;
+  Column: TColumn;
+  State: TGridDrawState
+);
+var
+  Tekst: string;
+  TekstRect: TRect;
+begin
+
+  if not Assigned(Column.Field) then
+  begin
+
+    dbgZahtevi.DefaultDrawColumnCell(
+      Rect,
+      DataCol,
+      Column,
+      State
+    );
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // PRIORITET
+  // ==========================================================
+
+  if SameText(
+    Column.Field.FieldName,
+    'prioritet'
+  ) then
+  begin
+
+    Tekst :=
+      Column.Field.AsString;
+
+
+    // Bez plave pozadine
+    dbgZahtevi.Canvas.Brush.Color :=
+      dbgZahtevi.Color;
+
+    dbgZahtevi.Canvas.FillRect(
+      Rect
+    );
+
+
+    dbgZahtevi.Canvas.Font.Color :=
+      BojaPrioriteta(Tekst);
+
+    dbgZahtevi.Canvas.Font.Style :=
+      [fsBold];
+
+
+    TekstRect :=
+      Rect;
+
+    Inc(
+      TekstRect.Left,
+      4
+    );
+
+
+    dbgZahtevi.Canvas.TextRect(
+      TekstRect,
+      TekstRect.Left,
+      TekstRect.Top + 2,
+      Tekst
+    );
+
+
+    // Vraćamo font
+    dbgZahtevi.Canvas.Font.Color :=
+      dbgZahtevi.Font.Color;
+
+    dbgZahtevi.Canvas.Font.Style :=
+      [];
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // STATUS
+  // ==========================================================
+
+  if SameText(
+    Column.Field.FieldName,
+    'status_prikaz'
+  ) then
+  begin
+
+    Tekst :=
+      Column.Field.AsString;
+
+
+    // Bez plave pozadine
+    dbgZahtevi.Canvas.Brush.Color :=
+      dbgZahtevi.Color;
+
+    dbgZahtevi.Canvas.FillRect(
+      Rect
+    );
+
+
+    // Boju određujemo prema status_raw
+    dbgZahtevi.Canvas.Font.Color :=
+      BojaStatusa(
+        FQryZahtevi.FieldByName(
+          'status_raw'
+        ).AsString
+      );
+
+    dbgZahtevi.Canvas.Font.Style :=
+      [fsBold];
+
+
+    TekstRect :=
+      Rect;
+
+    Inc(
+      TekstRect.Left,
+      4
+    );
+
+
+    dbgZahtevi.Canvas.TextRect(
+      TekstRect,
+      TekstRect.Left,
+      TekstRect.Top + 2,
+      Tekst
+    );
+
+
+    dbgZahtevi.Canvas.Font.Color :=
+      dbgZahtevi.Font.Color;
+
+    dbgZahtevi.Canvas.Font.Style :=
+      [];
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // SVE OSTALE KOLONE NORMALNO
+  // ==========================================================
+
+  dbgZahtevi.DefaultDrawColumnCell(
+    Rect,
+    DataCol,
+    Column,
+    State
+  );
+
+end;
+
+
+// ============================================================
+// PROMENA IZABRANOG REDA
+// ============================================================
+
+procedure TfraSviZahtevi.qryZahteviAfterScroll(
+  DataSet: TDataSet
+);
+begin
+
+  PrikaziIzabraniZahtev;
+
+end;
+
+
+// ============================================================
+// PRIKAZ DETALJA
+// ============================================================
+
+procedure TfraSviZahtevi.PrikaziIzabraniZahtev;
+var
+  Prioritet: string;
+  Status: string;
+begin
+
+  if (not FQryZahtevi.Active) or
+     FQryZahtevi.IsEmpty then
+  begin
+
+    OcistiDetalje;
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // ID
+  // ==========================================================
+
+  lblIDZahteva.Caption :=
+    FQryZahtevi.FieldByName(
+      'sifra'
+    ).AsString;
+
+
+  // ==========================================================
+  // PODNOSILAC
+  // ==========================================================
+
+  lblPodnosilacVrednost.Caption :=
+    FQryZahtevi.FieldByName(
+      'podnosilac'
+    ).AsString;
+
+
+  // ==========================================================
+  // MATERIJAL
+  // ==========================================================
+
+  lblMaterijalVrednost.Caption :=
+    FQryZahtevi.FieldByName(
+      'materijal'
+    ).AsString;
+
+
+  // ==========================================================
+  // KOLIČINA
+  // ==========================================================
+
+  lblKolicinaVrednost.Caption :=
+    FQryZahtevi.FieldByName(
+      'kolicina'
+    ).AsString;
+
+
+  // ==========================================================
+  // PRIORITET
+  // ==========================================================
+
+  Prioritet :=
+    FQryZahtevi.FieldByName(
+      'prioritet'
+    ).AsString;
+
+
+  lblPrioritetVrednost.Caption :=
+    Prioritet;
+
+  lblPrioritetVrednost.Font.Color :=
+    BojaPrioriteta(
+      Prioritet
+    );
+
+
+  // ==========================================================
+  // DATUM POTREBE
+  // ==========================================================
+
+  lblDatumVrednost.Caption :=
+    FQryZahtevi.FieldByName(
+      'datum_potrebe'
+    ).AsString;
+
+
+  // ==========================================================
+  // RAZLOG
+  // ==========================================================
+
+  memRazlog.Lines.Text :=
+    FQryZahtevi.FieldByName(
+      'razlog'
+    ).AsString;
+
+
+  // ==========================================================
+  // STATUS
+  // ==========================================================
+
+  Status :=
+    FQryZahtevi.FieldByName(
+      'status_raw'
+    ).AsString;
+
+
+  lblStatusVrednost.Caption :=
+    FQryZahtevi.FieldByName(
+      'status_prikaz'
+    ).AsString;
+
+
+  lblStatusVrednost.Font.Color :=
+    BojaStatusa(
+      Status
+    );
+
+
+  // ==========================================================
+  // KOMENTAR MENADŽERA
+  // ==========================================================
+
+  if Trim(
+    FQryZahtevi.FieldByName(
+      'komentar'
+    ).AsString
+  ) <> '' then
+  begin
+
+    memKomentar.Lines.Text :=
+      FQryZahtevi.FieldByName(
+        'komentar'
+      ).AsString;
+
+  end
+  else
+  begin
+
+    memKomentar.Lines.Text :=
+      'Nema komentara.';
+
+  end;
+
+end;
+
+
+// ============================================================
+// ČIŠĆENJE DETALJA
+// ============================================================
+
+procedure TfraSviZahtevi.OcistiDetalje;
+begin
+
+  lblIDZahteva.Caption :=
+    '-';
+
+  lblPodnosilacVrednost.Caption :=
+    '-';
+
+  lblMaterijalVrednost.Caption :=
+    '-';
+
+  lblKolicinaVrednost.Caption :=
+    '-';
+
+  lblPrioritetVrednost.Caption :=
+    '-';
+
+  lblPrioritetVrednost.Font.Color :=
+    clWindowText;
+
+  lblDatumVrednost.Caption :=
+    '-';
+
+  lblStatusVrednost.Caption :=
+    '-';
+
+  lblStatusVrednost.Font.Color :=
+    clWindowText;
+
+  memRazlog.Clear;
+
+  memKomentar.Clear;
+
+end;
+
+end.

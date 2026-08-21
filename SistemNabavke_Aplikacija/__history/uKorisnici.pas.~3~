@@ -1,0 +1,48 @@
+unit uKorisnici;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
+  Vcl.CheckLst, Data.DB, Vcl.Grids, Vcl.DBGrids;
+
+type
+  TfraKorisnici = class(TFrame)
+    pnlHeader: TPanel;
+    lblNaslov: TLabel;
+    lblOpis: TLabel;
+    pnlDetalji: TPanel;
+    lblDetaljiNaslov: TLabel;
+    lblUsernameNaslov: TLabel;
+    lblImeNaslov: TLabel;
+    lblTelefonNaslov: TLabel;
+    lblAdresaNaslov: TLabel;
+    lblMaterijaliNaslov: TLabel;
+    edtNaziv: TEdit;
+    edtIme: TEdit;
+    edtTelefon: TEdit;
+    edtAdresa: TEdit;
+    Panel1: TPanel;
+    btnNovi: TButton;
+    btnObrisi: TButton;
+    Panel3: TPanel;
+    btnSacuvaj: TButton;
+    btnOtkazi: TButton;
+    clbMaterijali: TCheckListBox;
+    pnlLista: TPanel;
+    lblListaNaslov: TLabel;
+    dbgKorisnici: TDBGrid;
+    edtPretraga: TEdit;
+    lblPretraga: TLabel;
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+implementation
+
+{$R *.dfm}
+
+end.

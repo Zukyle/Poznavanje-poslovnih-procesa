@@ -1,0 +1,17 @@
+program SistemNabavke;
+
+uses
+  Vcl.Forms,
+  uLogin in 'uLogin.pas' {frmLogin},
+  uGlavna in 'uGlavna.pas' {frmGlavna},
+  uNoviZahtev in 'uNoviZahtev.pas' {fraNoviZahtev: TFrame};
+
+{$R *.res}
+
+begin
+  Application.Initialize;
+  Application.MainFormOnTaskbar := True;
+  Application.CreateForm(TfrmLogin, frmLogin);
+  Application.CreateForm(TfrmGlavna, frmGlavna);
+  Application.Run;
+end.

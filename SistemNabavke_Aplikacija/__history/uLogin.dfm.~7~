@@ -1,0 +1,75 @@
+object frmLogin: TfrmLogin
+  Left = 0
+  Top = 0
+  Caption = 'Sistem Nabavke - Prijava'
+  ClientHeight = 350
+  ClientWidth = 500
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'Segoe UI'
+  Font.Style = []
+  Position = poScreenCenter
+  OnCreate = FormCreate
+  TextHeight = 15
+  object lblKorisnickoIme: TLabel
+    Left = 256
+    Top = 94
+    Width = 81
+    Height = 15
+    Caption = 'Korisni'#269'ko ime:'
+  end
+  object lblLozinka: TLabel
+    Left = 256
+    Top = 144
+    Width = 43
+    Height = 15
+    Caption = 'Lozinka:'
+  end
+  object edtKorisnickoIme: TEdit
+    Left = 256
+    Top = 115
+    Width = 121
+    Height = 23
+    TabOrder = 0
+  end
+  object edtLozinka: TEdit
+    Left = 256
+    Top = 165
+    Width = 121
+    Height = 23
+    PasswordChar = '#'
+    TabOrder = 1
+  end
+  object btnPrijaviSe: TButton
+    Left = 256
+    Top = 202
+    Width = 121
+    Height = 25
+    Caption = 'Prijavi se'
+    TabOrder = 2
+    OnClick = btnPrijaviSeClick
+  end
+  object BitBtn1: TBitBtn
+    Left = 224
+    Top = 264
+    Width = 75
+    Height = 25
+    Caption = 'BitBtn1'
+    TabOrder = 3
+  end
+  object FDConnection1: TFDConnection
+    Left = 416
+    Top = 8
+  end
+  object FDQuery1: TFDQuery
+    Connection = FDConnection1
+    Left = 296
+    Top = 8
+  end
+  object FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink
+    Left = 144
+    Top = 8
+  end
+end

@@ -1,0 +1,1747 @@
+﻿unit uNarudzbenice;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  System.DateUtils,
+
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.StdCtrls,
+  Vcl.ExtCtrls,
+  Vcl.Grids,
+  Vcl.DBGrids,
+  Vcl.ValEdit,
+  Vcl.CheckLst,
+
+  Data.DB,
+
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Param,
+  FireDAC.Stan.Error,
+  FireDAC.DatS,
+  FireDAC.Phys.Intf,
+  FireDAC.DApt.Intf,
+  FireDAC.Stan.Async,
+  FireDAC.DApt,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client;
+
+type
+  TfraNarudzbenice = class(TFrame)
+
+    pnlHeader: TPanel;
+    lblNaslov: TLabel;
+    lblOpis: TLabel;
+
+    pnlSadrzaj: TPanel;
+
+    // ========================================================
+    // KREIRANJE NARUDŽBENICE
+    // ========================================================
+
+    pnlKreiranje: TPanel;
+
+    lblZahtevNaslov: TLabel;
+    cmbZahtev: TComboBox;
+
+    vleDetaljiPonude: TValueListEditor;
+
+    btnKreirajNarudzbenicu: TButton;
+
+
+    // ========================================================
+    // TABELA
+    // ========================================================
+
+    pnlTabela: TPanel;
+
+    lblListaPonuda: TLabel;
+
+    dbgNarudzbenice: TDBGrid;
+
+
+    // ========================================================
+    // DETALJI NARUDŽBENICE
+    // ========================================================
+
+    pnlDetalji: TPanel;
+
+    lblDetaljiNaslov: TLabel;
+
+    lblIDNaslov: TLabel;
+    lblIDVrednost: TLabel;
+
+    lblZahtevDetaljiNaslov: TLabel;
+    lblZahtevDetaljiVrednost: TLabel;
+
+    lblMaterijalDetaljiNaslov: TLabel;
+    lblMaterijalDetaljiVrednost: TLabel;
+
+    lblDobavljacDetaljiNaslov: TLabel;
+    lblDobavljacDetaljiVrednost: TLabel;
+
+    lblKolicinaDetaljiNaslov: TLabel;
+    lblKolicinaDetaljiVrednost: TLabel;
+
+    lblUkupnoDetaljiNaslov: TLabel;
+    lblUkupnoDetaljiVrednost: TLabel;
+
+    lblDatumDetaljiNaslov: TLabel;
+    lblDatumDetaljiVrednost: TLabel;
+
+    lblStatusNaslov: TLabel;
+
+    cmbStatus: TComboBox;
+
+    btnPromeniStatus: TButton;
+
+    bvlSeparator: TBevel;
+    Bevel1: TBevel;
+
+  private
+
+    // ========================================================
+    // QUERY ZA TABELU NARUDŽBENICA
+    // ========================================================
+
+    FQryNarudzbenice: TFDQuery;
+    FDsNarudzbenice: TDataSource;
+
+
+    // ========================================================
+    // PODACI ZA KREIRANJE NARUDŽBENICE
+    // ========================================================
+
+    FZahtevID: Integer;
+    FOfferID: Integer;
+    FDobavljacID: Integer;
+
+    FRokIsporuke: Integer;
+    FUkupnaCena: Double;
+
+
+    // ========================================================
+    // TRENUTNO IZABRANA NARUDŽBENICA
+    // ========================================================
+
+    FIzabranaNarudzbenicaID: Integer;
+
+
+    // ========================================================
+    // ZAHTEVI / PONUDA
+    // ========================================================
+
+    procedure UcitajZahteveZaKreiranje;
+
+    procedure cmbZahtevChange(
+      Sender: TObject
+    );
+
+    procedure UcitajDetaljePonude;
+
+    procedure OcistiDetaljePonude;
+
+
+    // ========================================================
+    // NARUDŽBENICE
+    // ========================================================
+
+    procedure UcitajNarudzbenice;
+
+    procedure PodesiKolone;
+
+    procedure qryNarudzbeniceAfterScroll(
+      DataSet: TDataSet
+    );
+
+    procedure PrikaziDetaljeNarudzbenice;
+
+    procedure OcistiDetaljeNarudzbenice;
+
+
+    // ========================================================
+    // DUGMAD
+    // ========================================================
+
+    procedure btnKreirajNarudzbenicuClick(
+      Sender: TObject
+    );
+
+    procedure btnPromeniStatusClick(
+      Sender: TObject
+    );
+
+
+    // ========================================================
+    // STATUS
+    // ========================================================
+
+    procedure UcitajStatuse;
+
+    function StatusDBUPrikaz(
+      const AStatus: string
+    ): string;
+
+    function StatusPrikazUDB(
+      const AStatus: string
+    ): string;
+
+  public
+
+    constructor Create(
+      AOwner: TComponent
+    ); override;
+
+    procedure Osvezi;
+
+  end;
+
+implementation
+
+uses
+  uLogin;
+
+{$R *.dfm}
+
+
+// ============================================================
+// CONSTRUCTOR
+// ============================================================
+
+constructor TfraNarudzbenice.Create(
+  AOwner: TComponent
+);
+begin
+  inherited Create(AOwner);
+
+
+  // ==========================================================
+  // QUERY
+  // ==========================================================
+
+  FQryNarudzbenice :=
+    TFDQuery.Create(Self);
+
+  FQryNarudzbenice.Connection :=
+    frmLogin.FDConnection1;
+
+
+  // ==========================================================
+  // DATASOURCE
+  // ==========================================================
+
+  FDsNarudzbenice :=
+    TDataSource.Create(Self);
+
+  FDsNarudzbenice.DataSet :=
+    FQryNarudzbenice;
+
+
+  // ==========================================================
+  // GRID
+  // ==========================================================
+
+  dbgNarudzbenice.DataSource :=
+    FDsNarudzbenice;
+
+  dbgNarudzbenice.ReadOnly :=
+    True;
+
+  dbgNarudzbenice.Options :=
+    dbgNarudzbenice.Options + [dgRowSelect];
+
+
+  FQryNarudzbenice.AfterScroll :=
+    qryNarudzbeniceAfterScroll;
+
+
+  // ==========================================================
+  // COMBOBOX
+  // ==========================================================
+
+  cmbZahtev.Style :=
+    csDropDownList;
+
+  cmbStatus.Style :=
+    csDropDownList;
+
+
+  cmbZahtev.OnChange :=
+    cmbZahtevChange;
+
+
+  // ==========================================================
+  // DUGMAD
+  // ==========================================================
+
+  btnKreirajNarudzbenicu.OnClick :=
+    btnKreirajNarudzbenicuClick;
+
+
+  btnPromeniStatus.OnClick :=
+    btnPromeniStatusClick;
+
+
+
+  // ==========================================================
+  // VALUE LIST EDITOR
+  // ==========================================================
+
+  vleDetaljiPonude.DisplayOptions :=
+    vleDetaljiPonude.DisplayOptions + [doColumnTitles];
+
+  vleDetaljiPonude.TitleCaptions.Clear;
+
+  vleDetaljiPonude.TitleCaptions.Add(
+    'Podatak'
+  );
+
+  vleDetaljiPonude.TitleCaptions.Add(
+    'Vrednost'
+  );
+
+
+  // Ne dozvoljavamo menjanje podataka
+  vleDetaljiPonude.Options :=
+    vleDetaljiPonude.Options - [goEditing];
+
+
+  // ==========================================================
+  // POČETNO STANJE
+  // ==========================================================
+
+  FZahtevID := 0;
+  FOfferID := 0;
+  FDobavljacID := 0;
+
+  FRokIsporuke := 0;
+  FUkupnaCena := 0;
+
+  FIzabranaNarudzbenicaID := 0;
+
+
+  UcitajStatuse;
+
+  OcistiDetaljePonude;
+  OcistiDetaljeNarudzbenice;
+
+  Osvezi;
+
+end;
+
+
+// ============================================================
+// OSVEŽAVANJE
+// ============================================================
+
+procedure TfraNarudzbenice.Osvezi;
+begin
+
+  UcitajZahteveZaKreiranje;
+
+  UcitajNarudzbenice;
+
+end;
+
+
+// ============================================================
+// UČITAVANJE ZAHTEVA KOJI SU SPREMNI ZA NARUDŽBENICU
+// ============================================================
+
+procedure TfraNarudzbenice.UcitajZahteveZaKreiranje;
+var
+  Q: TFDQuery;
+begin
+
+  cmbZahtev.Items.Clear;
+  cmbZahtev.ItemIndex := -1;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    // --------------------------------------------------------
+    // Prikazujemo samo zahteve:
+    //
+    // 1. koji su odobreni
+    // 2. imaju izabranu ponudu
+    // 3. još nemaju narudžbenicu
+    // --------------------------------------------------------
+
+    Q.SQL.Text :=
+
+      'SELECT DISTINCT ' +
+
+      'r.id, ' +
+
+      'CAST(' +
+        '''Z-'' || ' +
+        'strftime(''%Y'', r.created_at) || ' +
+        '''-'' || printf(''%04d'', r.id) ' +
+      'AS VARCHAR(30)) AS sifra, ' +
+
+      'CAST(m.name AS VARCHAR(150)) AS materijal ' +
+
+      'FROM requests r ' +
+
+      'INNER JOIN materials m ' +
+      'ON m.id = r.material_id ' +
+
+      'INNER JOIN offers ofr ' +
+      'ON ofr.request_id = r.id ' +
+      'AND ofr.selected = 1 ' +
+
+      'WHERE r.status = ''approved'' ' +
+
+      'AND NOT EXISTS (' +
+
+        'SELECT 1 ' +
+        'FROM orders ord ' +
+        'WHERE ord.request_id = r.id' +
+
+      ') ' +
+
+      'ORDER BY r.needed_by ASC';
+
+
+    Q.Open;
+
+
+    while not Q.Eof do
+    begin
+
+      cmbZahtev.Items.AddObject(
+
+        Q.FieldByName(
+          'sifra'
+        ).AsString +
+
+        ' - ' +
+
+        Q.FieldByName(
+          'materijal'
+        ).AsString,
+
+        TObject(
+          NativeInt(
+            Q.FieldByName(
+              'id'
+            ).AsInteger
+          )
+        )
+
+      );
+
+
+      Q.Next;
+
+    end;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+
+  // ==========================================================
+  // BIRAMO PRVI ZAHTEV
+  // ==========================================================
+
+  if cmbZahtev.Items.Count > 0 then
+  begin
+
+    cmbZahtev.ItemIndex :=
+      0;
+
+    cmbZahtevChange(
+      cmbZahtev
+    );
+
+  end
+  else
+  begin
+
+    OcistiDetaljePonude;
+
+    btnKreirajNarudzbenicu.Enabled :=
+      False;
+
+  end;
+
+end;
+
+
+// ============================================================
+// PROMENA ZAHTEVA
+// ============================================================
+
+procedure TfraNarudzbenice.cmbZahtevChange(
+  Sender: TObject
+);
+begin
+
+  if cmbZahtev.ItemIndex < 0 then
+  begin
+
+    OcistiDetaljePonude;
+
+    btnKreirajNarudzbenicu.Enabled :=
+      False;
+
+    Exit;
+
+  end;
+
+
+  FZahtevID :=
+    Integer(
+      NativeInt(
+        cmbZahtev.Items.Objects[
+          cmbZahtev.ItemIndex
+        ]
+      )
+    );
+
+
+  UcitajDetaljePonude;
+
+end;
+
+
+// ============================================================
+// UČITAVANJE IZABRANE PONUDE
+// ============================================================
+
+procedure TfraNarudzbenice.UcitajDetaljePonude;
+var
+  Q: TFDQuery;
+
+  Materijal: string;
+  Jedinica: string;
+  Dobavljac: string;
+
+  Kolicina: Double;
+  Cena: Double;
+begin
+
+  OcistiDetaljePonude;
+
+
+  if FZahtevID = 0 then
+    Exit;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+
+      'SELECT ' +
+
+      'ofr.id AS offer_id, ' +
+
+      's.id AS supplier_id, ' +
+
+      'CAST(m.name AS VARCHAR(150)) AS materijal, ' +
+
+      'r.quantity, ' +
+
+      'CAST(m.unit AS VARCHAR(50)) AS jedinica, ' +
+
+      'CAST(s.name AS VARCHAR(150)) AS dobavljac, ' +
+
+      'ofr.unit_price, ' +
+
+      'ofr.delivery_days, ' +
+
+      '(r.quantity * ofr.unit_price) AS ukupna_cena ' +
+
+      'FROM requests r ' +
+
+      'INNER JOIN materials m ' +
+      'ON m.id = r.material_id ' +
+
+      'INNER JOIN offers ofr ' +
+      'ON ofr.request_id = r.id ' +
+      'AND ofr.selected = 1 ' +
+
+      'INNER JOIN suppliers s ' +
+      'ON s.id = ofr.supplier_id ' +
+
+      'WHERE r.id = :request_id ' +
+      'AND r.status = ''approved'' ' +
+
+      'LIMIT 1';
+
+
+    Q.ParamByName(
+      'request_id'
+    ).AsInteger :=
+      FZahtevID;
+
+
+    Q.Open;
+
+
+    if Q.IsEmpty then
+    begin
+
+      ShowMessage(
+        'Za izabrani zahtev ne postoji izabrana ponuda.'
+      );
+
+      btnKreirajNarudzbenicu.Enabled :=
+        False;
+
+      Exit;
+
+    end;
+
+
+    // ========================================================
+    // ČUVAMO ID-EVE I VREDNOSTI
+    // ========================================================
+
+    FOfferID :=
+      Q.FieldByName(
+        'offer_id'
+      ).AsInteger;
+
+
+    FDobavljacID :=
+      Q.FieldByName(
+        'supplier_id'
+      ).AsInteger;
+
+
+    FRokIsporuke :=
+      Q.FieldByName(
+        'delivery_days'
+      ).AsInteger;
+
+
+    FUkupnaCena :=
+      Q.FieldByName(
+        'ukupna_cena'
+      ).AsFloat;
+
+
+    // ========================================================
+    // PODACI ZA PRIKAZ
+    // ========================================================
+
+    Materijal :=
+      Q.FieldByName(
+        'materijal'
+      ).AsString;
+
+
+    Kolicina :=
+      Q.FieldByName(
+        'quantity'
+      ).AsFloat;
+
+
+    Jedinica :=
+      Q.FieldByName(
+        'jedinica'
+      ).AsString;
+
+
+    Dobavljac :=
+      Q.FieldByName(
+        'dobavljac'
+      ).AsString;
+
+
+    Cena :=
+      Q.FieldByName(
+        'unit_price'
+      ).AsFloat;
+
+
+    // ========================================================
+    // VALUE LIST EDITOR
+    // ========================================================
+
+    vleDetaljiPonude.Strings.Clear;
+
+
+    vleDetaljiPonude.InsertRow(
+      'Materijal',
+      Materijal,
+      True
+    );
+
+
+    vleDetaljiPonude.InsertRow(
+      'Količina',
+
+      FormatFloat(
+        '0.##',
+        Kolicina
+      ) +
+      ' ' +
+      Jedinica,
+
+      True
+    );
+
+
+    vleDetaljiPonude.InsertRow(
+      'Dobavljač',
+      Dobavljac,
+      True
+    );
+
+
+    vleDetaljiPonude.InsertRow(
+      'Cena po jedinici',
+
+      FormatFloat(
+        '#,##0.00',
+        Cena
+      ) +
+      ' RSD',
+
+      True
+    );
+
+
+    vleDetaljiPonude.InsertRow(
+      'Ukupna cena',
+
+      FormatFloat(
+        '#,##0.00',
+        FUkupnaCena
+      ) +
+      ' RSD',
+
+      True
+    );
+
+
+    vleDetaljiPonude.InsertRow(
+      'Rok isporuke',
+
+      IntToStr(
+        FRokIsporuke
+      ) +
+      ' dana',
+
+      True
+    );
+
+
+    // ========================================================
+    // SADA MOŽEMO DA KREIRAMO NARUDŽBENICU
+    // ========================================================
+
+    btnKreirajNarudzbenicu.Enabled :=
+      True;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// ČIŠĆENJE DETALJA PONUDE
+// ============================================================
+
+procedure TfraNarudzbenice.OcistiDetaljePonude;
+begin
+
+  FOfferID := 0;
+  FDobavljacID := 0;
+
+  FRokIsporuke := 0;
+  FUkupnaCena := 0;
+
+
+  vleDetaljiPonude.Strings.Clear;
+
+
+  // Ostavimo strukturu vidljivu
+  vleDetaljiPonude.InsertRow(
+    'Materijal',
+    '-',
+    True
+  );
+
+  vleDetaljiPonude.InsertRow(
+    'Količina',
+    '-',
+    True
+  );
+
+  vleDetaljiPonude.InsertRow(
+    'Dobavljač',
+    '-',
+    True
+  );
+
+  vleDetaljiPonude.InsertRow(
+    'Cena po jedinici',
+    '-',
+    True
+  );
+
+  vleDetaljiPonude.InsertRow(
+    'Ukupna cena',
+    '-',
+    True
+  );
+
+  vleDetaljiPonude.InsertRow(
+    'Rok isporuke',
+    '-',
+    True
+  );
+
+end;
+
+
+// ============================================================
+// KREIRAJ NARUDŽBENICU
+// ============================================================
+
+procedure TfraNarudzbenice.btnKreirajNarudzbenicuClick(
+  Sender: TObject
+);
+var
+  Q: TFDQuery;
+
+  OcekivaniDatum: TDateTime;
+begin
+
+  if FZahtevID = 0 then
+  begin
+
+    ShowMessage(
+      'Izaberite zahtev.'
+    );
+
+    Exit;
+
+  end;
+
+
+  if FOfferID = 0 then
+  begin
+
+    ShowMessage(
+      'Za zahtev nije izabrana ponuda.'
+    );
+
+    Exit;
+
+  end;
+
+
+  if FDobavljacID = 0 then
+  begin
+
+    ShowMessage(
+      'Dobavljač nije pronađen.'
+    );
+
+    Exit;
+
+  end;
+
+
+  // ==========================================================
+  // OČEKIVANI DATUM
+  // ==========================================================
+
+  OcekivaniDatum :=
+    IncDay(
+      Date,
+      FRokIsporuke
+    );
+
+
+  if MessageDlg(
+
+    'Da li želite da kreirate narudžbenicu?' +
+    sLineBreak +
+    sLineBreak +
+
+    'Ukupna cena: ' +
+    FormatFloat(
+      '#,##0.00',
+      FUkupnaCena
+    ) +
+    ' RSD' +
+    sLineBreak +
+
+    'Očekivana isporuka: ' +
+    FormatDateTime(
+      'dd.mm.yyyy',
+      OcekivaniDatum
+    ),
+
+    mtConfirmation,
+    [mbYes, mbNo],
+    0
+
+  ) <> mrYes then
+    Exit;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+
+      'INSERT INTO orders ' +
+
+      '(' +
+        'request_id, ' +
+        'offer_id, ' +
+        'supplier_id, ' +
+        'total_price, ' +
+        'status, ' +
+        'expected_date' +
+      ') ' +
+
+      'VALUES ' +
+
+      '(' +
+        ':request_id, ' +
+        ':offer_id, ' +
+        ':supplier_id, ' +
+        ':total_price, ' +
+        '''created'', ' +
+        ':expected_date' +
+      ')';
+
+
+    Q.ParamByName(
+      'request_id'
+    ).AsInteger :=
+      FZahtevID;
+
+
+    Q.ParamByName(
+      'offer_id'
+    ).AsInteger :=
+      FOfferID;
+
+
+    Q.ParamByName(
+      'supplier_id'
+    ).AsInteger :=
+      FDobavljacID;
+
+
+    Q.ParamByName(
+      'total_price'
+    ).AsFloat :=
+      FUkupnaCena;
+
+
+    Q.ParamByName(
+      'expected_date'
+    ).AsString :=
+      FormatDateTime(
+        'yyyy-mm-dd',
+        OcekivaniDatum
+      );
+
+
+    try
+
+      Q.ExecSQL;
+
+
+      ShowMessage(
+        'Narudžbenica je uspešno kreirana.'
+      );
+
+
+      // Zahtev sada nestaje iz ComboBox-a
+      UcitajZahteveZaKreiranje;
+
+
+      // Nova narudžbenica se pojavljuje u tabeli
+      UcitajNarudzbenice;
+
+
+    except
+
+      on E: Exception do
+      begin
+
+        ShowMessage(
+          'Greška prilikom kreiranja narudžbenice:' +
+          sLineBreak +
+          E.Message
+        );
+
+      end;
+
+    end;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+
+// ============================================================
+// UČITAVANJE NARUDŽBENICA
+// ============================================================
+
+procedure TfraNarudzbenice.UcitajNarudzbenice;
+begin
+
+  FQryNarudzbenice.Close;
+
+
+  FQryNarudzbenice.SQL.Text :=
+
+    'SELECT ' +
+
+    'ord.id, ' +
+
+    'CAST(' +
+      '''N-'' || printf(''%04d'', ord.id) ' +
+    'AS VARCHAR(30)) ' +
+    'AS sifra_narudzbenice, ' +
+
+    'CAST(' +
+      '''Z-'' || ' +
+      'strftime(''%Y'', r.created_at) || ' +
+      '''-'' || printf(''%04d'', r.id) ' +
+    'AS VARCHAR(30)) ' +
+    'AS sifra_zahteva, ' +
+
+    'CAST(m.name AS VARCHAR(150)) ' +
+    'AS materijal, ' +
+
+    'CAST(s.name AS VARCHAR(150)) ' +
+    'AS dobavljac, ' +
+
+    'CAST(' +
+      'printf(''%g'', r.quantity) || ' +
+      ''' '' || m.unit ' +
+    'AS VARCHAR(50)) ' +
+    'AS kolicina_prikaz, ' +
+
+    'ord.total_price, ' +
+
+    'CAST(' +
+      'printf(''%.2f'', ord.total_price) ' +
+    'AS VARCHAR(50)) ' +
+    'AS ukupno_prikaz, ' +
+
+    'CAST(ord.status AS VARCHAR(30)) ' +
+    'AS status, ' +
+
+    'CAST(' +
+
+      'CASE ord.status ' +
+
+        'WHEN ''created'' THEN ''Kreirana'' ' +
+        'WHEN ''sent'' THEN ''Poslata'' ' +
+        'WHEN ''confirmed'' THEN ''Potvrđena'' ' +
+        'WHEN ''in_progress'' THEN ''U toku'' ' +
+        'WHEN ''delivered'' THEN ''Isporučena'' ' +
+        'WHEN ''completed'' THEN ''Završena'' ' +
+
+        'ELSE ord.status ' +
+
+      'END ' +
+
+    'AS VARCHAR(50)) ' +
+    'AS status_prikaz, ' +
+
+    'CAST(' +
+
+      'CASE ' +
+
+        'WHEN ord.expected_date IS NULL THEN '''' ' +
+
+        'ELSE strftime(''%d.%m.%Y'', ord.expected_date) ' +
+
+      'END ' +
+
+    'AS VARCHAR(30)) ' +
+    'AS datum_prikaz ' +
+
+    'FROM orders ord ' +
+
+    'INNER JOIN requests r ' +
+    'ON r.id = ord.request_id ' +
+
+    'INNER JOIN materials m ' +
+    'ON m.id = r.material_id ' +
+
+    'INNER JOIN suppliers s ' +
+    'ON s.id = ord.supplier_id ' +
+
+    'ORDER BY ord.created_at DESC, ord.id DESC';
+
+
+  try
+
+    FQryNarudzbenice.Open;
+
+
+    PodesiKolone;
+
+
+    if not FQryNarudzbenice.IsEmpty then
+    begin
+
+      FQryNarudzbenice.First;
+
+      PrikaziDetaljeNarudzbenice;
+
+    end
+    else
+    begin
+
+      OcistiDetaljeNarudzbenice;
+
+    end;
+
+
+  except
+
+    on E: Exception do
+    begin
+
+      ShowMessage(
+        'Greška prilikom učitavanja narudžbenica:' +
+        sLineBreak +
+        E.Message
+      );
+
+      OcistiDetaljeNarudzbenice;
+
+    end;
+
+  end;
+
+end;
+
+
+// ============================================================
+// KOLONE TABELE
+// ============================================================
+
+procedure TfraNarudzbenice.PodesiKolone;
+begin
+
+  dbgNarudzbenice.Columns.Clear;
+
+
+  // ==========================================================
+  // ID
+  // ==========================================================
+
+  with dbgNarudzbenice.Columns.Add do
+  begin
+
+    FieldName :=
+      'sifra_narudzbenice';
+
+    Title.Caption :=
+      'ID';
+
+    Width :=
+      80;
+
+  end;
+
+
+  // ==========================================================
+  // ZAHTEV
+  // ==========================================================
+
+  with dbgNarudzbenice.Columns.Add do
+  begin
+
+    FieldName :=
+      'sifra_zahteva';
+
+    Title.Caption :=
+      'Zahtev';
+
+    Width :=
+      110;
+
+  end;
+
+
+  // ==========================================================
+  // DOBAVLJAČ
+  // ==========================================================
+
+  with dbgNarudzbenice.Columns.Add do
+  begin
+
+    FieldName :=
+      'dobavljac';
+
+    Title.Caption :=
+      'Dobavljač';
+
+    Width :=
+      150;
+
+  end;
+
+
+  // ==========================================================
+  // UKUPNO
+  // ==========================================================
+
+  with dbgNarudzbenice.Columns.Add do
+  begin
+
+    FieldName :=
+      'ukupno_prikaz';
+
+    Title.Caption :=
+      'Ukupna cena';
+
+    Width :=
+      100;
+
+  end;
+
+
+  // ==========================================================
+  // STATUS
+  // ==========================================================
+
+  with dbgNarudzbenice.Columns.Add do
+  begin
+
+    FieldName :=
+      'status_prikaz';
+
+    Title.Caption :=
+      'Status';
+
+    Width :=
+      100;
+
+  end;
+
+
+  // ==========================================================
+  // DATUM
+  // ==========================================================
+
+  with dbgNarudzbenice.Columns.Add do
+  begin
+
+    FieldName :=
+      'datum_prikaz';
+
+    Title.Caption :=
+      'Očekivana isporuka';
+
+    Width :=
+      125;
+
+  end;
+
+end;
+
+
+// ============================================================
+// PROMENA REDA
+// ============================================================
+
+procedure TfraNarudzbenice.qryNarudzbeniceAfterScroll(
+  DataSet: TDataSet
+);
+begin
+
+  PrikaziDetaljeNarudzbenice;
+
+end;
+
+
+// ============================================================
+// PRIKAZ DETALJA NARUDŽBENICE
+// ============================================================
+
+procedure TfraNarudzbenice.PrikaziDetaljeNarudzbenice;
+var
+  StatusPrikaz: string;
+begin
+
+  if (not FQryNarudzbenice.Active) or
+     FQryNarudzbenice.IsEmpty then
+  begin
+
+    OcistiDetaljeNarudzbenice;
+
+    Exit;
+
+  end;
+
+
+  FIzabranaNarudzbenicaID :=
+    FQryNarudzbenice.FieldByName(
+      'id'
+    ).AsInteger;
+
+
+  // ==========================================================
+  // ID
+  // ==========================================================
+
+  lblIDVrednost.Caption :=
+    FQryNarudzbenice.FieldByName(
+      'sifra_narudzbenice'
+    ).AsString;
+
+
+  // ==========================================================
+  // ZAHTEV
+  // ==========================================================
+
+  lblZahtevDetaljiVrednost.Caption :=
+    FQryNarudzbenice.FieldByName(
+      'sifra_zahteva'
+    ).AsString;
+
+
+  // ==========================================================
+  // MATERIJAL
+  // ==========================================================
+
+  lblMaterijalDetaljiVrednost.Caption :=
+    FQryNarudzbenice.FieldByName(
+      'materijal'
+    ).AsString;
+
+
+  // ==========================================================
+  // DOBAVLJAČ
+  // ==========================================================
+
+  lblDobavljacDetaljiVrednost.Caption :=
+    FQryNarudzbenice.FieldByName(
+      'dobavljac'
+    ).AsString;
+
+
+  // ==========================================================
+  // KOLIČINA
+  // ==========================================================
+
+  lblKolicinaDetaljiVrednost.Caption :=
+    FQryNarudzbenice.FieldByName(
+      'kolicina_prikaz'
+    ).AsString;
+
+
+  // ==========================================================
+  // UKUPNO
+  // ==========================================================
+
+  lblUkupnoDetaljiVrednost.Caption :=
+
+    FormatFloat(
+      '#,##0.00',
+      FQryNarudzbenice.FieldByName(
+        'total_price'
+      ).AsFloat
+    ) +
+
+    ' RSD';
+
+
+  // ==========================================================
+  // DATUM
+  // ==========================================================
+
+  lblDatumDetaljiVrednost.Caption :=
+    FQryNarudzbenice.FieldByName(
+      'datum_prikaz'
+    ).AsString;
+
+
+  // ==========================================================
+  // STATUS
+  // ==========================================================
+
+  StatusPrikaz :=
+    FQryNarudzbenice.FieldByName(
+      'status_prikaz'
+    ).AsString;
+
+
+  cmbStatus.ItemIndex :=
+    cmbStatus.Items.IndexOf(
+      StatusPrikaz
+    );
+
+
+  btnPromeniStatus.Enabled :=
+    True;
+
+end;
+
+
+// ============================================================
+// ČIŠĆENJE DETALJA NARUDŽBENICE
+// ============================================================
+
+procedure TfraNarudzbenice.OcistiDetaljeNarudzbenice;
+begin
+
+  FIzabranaNarudzbenicaID :=
+    0;
+
+
+  lblIDVrednost.Caption :=
+    '-';
+
+  lblZahtevDetaljiVrednost.Caption :=
+    '-';
+
+  lblMaterijalDetaljiVrednost.Caption :=
+    '-';
+
+  lblDobavljacDetaljiVrednost.Caption :=
+    '-';
+
+  lblKolicinaDetaljiVrednost.Caption :=
+    '-';
+
+  lblUkupnoDetaljiVrednost.Caption :=
+    '-';
+
+  lblDatumDetaljiVrednost.Caption :=
+    '-';
+
+
+  cmbStatus.ItemIndex :=
+    -1;
+
+
+  btnPromeniStatus.Enabled :=
+    False;
+
+
+end;
+
+
+// ============================================================
+// STATUSI
+// ============================================================
+
+procedure TfraNarudzbenice.UcitajStatuse;
+begin
+
+  cmbStatus.Items.Clear;
+
+
+  cmbStatus.Items.Add(
+    'Kreirana'
+  );
+
+  cmbStatus.Items.Add(
+    'Poslata'
+  );
+
+  cmbStatus.Items.Add(
+    'Potvrđena'
+  );
+
+  cmbStatus.Items.Add(
+    'U toku'
+  );
+
+  cmbStatus.Items.Add(
+    'Isporučena'
+  );
+
+  cmbStatus.Items.Add(
+    'Završena'
+  );
+
+
+  cmbStatus.ItemIndex :=
+    -1;
+
+end;
+
+
+// ============================================================
+// DB STATUS -> PRIKAZ
+// ============================================================
+
+function TfraNarudzbenice.StatusDBUPrikaz(
+  const AStatus: string
+): string;
+begin
+
+  if SameText(
+    AStatus,
+    'created'
+  ) then
+    Result := 'Kreirana'
+
+  else if SameText(
+    AStatus,
+    'sent'
+  ) then
+    Result := 'Poslata'
+
+  else if SameText(
+    AStatus,
+    'confirmed'
+  ) then
+    Result := 'Potvrđena'
+
+  else if SameText(
+    AStatus,
+    'in_progress'
+  ) then
+    Result := 'U toku'
+
+  else if SameText(
+    AStatus,
+    'delivered'
+  ) then
+    Result := 'Isporučena'
+
+  else if SameText(
+    AStatus,
+    'completed'
+  ) then
+    Result := 'Završena'
+
+  else
+    Result := AStatus;
+
+end;
+
+
+// ============================================================
+// PRIKAZ -> DB STATUS
+// ============================================================
+
+function TfraNarudzbenice.StatusPrikazUDB(
+  const AStatus: string
+): string;
+begin
+
+  if SameText(
+    AStatus,
+    'Kreirana'
+  ) then
+    Result := 'created'
+
+  else if SameText(
+    AStatus,
+    'Poslata'
+  ) then
+    Result := 'sent'
+
+  else if SameText(
+    AStatus,
+    'Potvrđena'
+  ) then
+    Result := 'confirmed'
+
+  else if SameText(
+    AStatus,
+    'U toku'
+  ) then
+    Result := 'in_progress'
+
+  else if SameText(
+    AStatus,
+    'Isporučena'
+  ) then
+    Result := 'delivered'
+
+  else if SameText(
+    AStatus,
+    'Završena'
+  ) then
+    Result := 'completed'
+
+  else
+    Result := '';
+
+end;
+
+
+// ============================================================
+// PROMENI STATUS
+// ============================================================
+
+procedure TfraNarudzbenice.btnPromeniStatusClick(
+  Sender: TObject
+);
+var
+  Q: TFDQuery;
+  NoviStatus: string;
+begin
+
+  if FIzabranaNarudzbenicaID = 0 then
+  begin
+
+    ShowMessage(
+      'Izaberite narudžbenicu.'
+    );
+
+    Exit;
+
+  end;
+
+
+  if cmbStatus.ItemIndex < 0 then
+  begin
+
+    ShowMessage(
+      'Izaberite status.'
+    );
+
+    Exit;
+
+  end;
+
+
+  NoviStatus :=
+    StatusPrikazUDB(
+      cmbStatus.Text
+    );
+
+
+  if NoviStatus = '' then
+  begin
+
+    ShowMessage(
+      'Status nije validan.'
+    );
+
+    Exit;
+
+  end;
+
+
+  Q :=
+    TFDQuery.Create(nil);
+
+  try
+
+    Q.Connection :=
+      frmLogin.FDConnection1;
+
+
+    Q.SQL.Text :=
+
+      'UPDATE orders ' +
+
+      'SET status = :status ' +
+
+      'WHERE id = :id';
+
+
+    Q.ParamByName(
+      'status'
+    ).AsString :=
+      NoviStatus;
+
+
+    Q.ParamByName(
+      'id'
+    ).AsInteger :=
+      FIzabranaNarudzbenicaID;
+
+
+    try
+
+      Q.ExecSQL;
+
+
+      ShowMessage(
+        'Status narudžbenice je uspešno promenjen.'
+      );
+
+
+      UcitajNarudzbenice;
+
+
+    except
+
+      on E: Exception do
+      begin
+
+        ShowMessage(
+          'Greška prilikom promene statusa:' +
+          sLineBreak +
+          E.Message
+        );
+
+      end;
+
+    end;
+
+
+  finally
+
+    Q.Free;
+
+  end;
+
+end;
+
+// ============================================================
+// PRAZAN EVENT IZ DFM-A
+// ============================================================
+
+end.

@@ -1,0 +1,45 @@
+unit uPrijemRobe;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
+  Data.DB, Vcl.Grids, Vcl.DBGrids;
+
+type
+  TfraPrijemRobe = class(TFrame)
+    pnlHeader: TPanel;
+    lblNaslov: TLabel;
+    lblOpis: TLabel;
+    pnlPrijem: TPanel;
+    pnlDetalji: TPanel;
+    lblDetaljiNaslov: TLabel;
+    lblNarudzbenicaNaslov: TLabel;
+    lblNarudzbenicaVrednost: TLabel;
+    lblMaterijalNaslov: TLabel;
+    lblMaterijalVrednost: TLabel;
+    lblKolicinaNaslov: TLabel;
+    lblKolicinaVrednost: TLabel;
+    lblDobavljacNaslov: TLabel;
+    lblDobavljacVrednost: TLabel;
+    lblUkupnoNaslov: TLabel;
+    lblUkupnoVrednost: TLabel;
+    lblDatumVrednost: TLabel;
+    lblDatumNaslov: TLabel;
+    lblStatusVrednost: TLabel;
+    lblStatusNaslov: TLabel;
+    Bevel1: TBevel;
+    Bevel2: TBevel;
+    btnPrimiRobu: TButton;
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+implementation
+
+{$R *.dfm}
+
+end.

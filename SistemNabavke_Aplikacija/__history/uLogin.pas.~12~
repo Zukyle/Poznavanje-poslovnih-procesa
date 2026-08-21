@@ -1,0 +1,302 @@
+﻿unit uLogin;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.StdCtrls,
+
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Error,
+  FireDAC.UI.Intf,
+  FireDAC.Phys.Intf,
+  FireDAC.Stan.Def,
+  FireDAC.Stan.Pool,
+  FireDAC.Stan.Async,
+  FireDAC.Phys,
+  FireDAC.VCLUI.Wait,
+  FireDAC.Stan.Param,
+  FireDAC.DatS,
+  FireDAC.DApt.Intf,
+  FireDAC.DApt,
+  FireDAC.Stan.ExprFuncs,
+  FireDAC.Phys.SQLiteWrapper.Stat,
+  FireDAC.Phys.SQLiteDef,
+  FireDAC.Phys.SQLite,
+
+  Data.DB,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client,
+
+  System.Hash, Vcl.Imaging.pngimage, Vcl.ExtCtrls, Vcl.Buttons;
+
+type
+  TfrmLogin = class(TForm)
+    pnlLogin: TPanel;
+    FDConnection1: TFDConnection;
+    FDQuery1: TFDQuery;
+    FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink;
+    pnlPrijava: TPanel;
+    imgLogo: TImage;
+    lblNaslov: TLabel;
+    lblOpis: TLabel;
+    lblKorisnickoIme: TLabel;
+    edtKorisnickoIme: TEdit;
+    lblLozinka: TLabel;
+    edtLozinka: TEdit;
+    btnPrijaviSe: TButton;
+    imgLogin: TImage;
+
+    procedure FormCreate(Sender: TObject);
+    procedure btnPrijaviSeClick(Sender: TObject);
+
+  private
+    { Private declarations }
+
+  public
+    { Public declarations }
+  end;
+
+var
+  frmLogin: TfrmLogin;
+
+implementation
+
+uses
+  uGlavna;  // NOVO - glavna forma aplikacije
+
+{$R *.dfm}
+
+
+// ======================================================
+// POVEZIVANJE SA SQLITE BAZOM
+// ======================================================
+
+procedure TfrmLogin.FormCreate(Sender: TObject);
+var
+  PutanjaBaze: string;
+begin
+
+  // Baza se nalazi pored .exe fajla
+  PutanjaBaze :=
+    ExtractFilePath(ParamStr(0)) + 'nabavke.db';
+
+    // NOVO - samo za proveru
+    ShowMessage(
+      'Aplikacija koristi bazu:' +
+      sLineBreak +
+      PutanjaBaze
+    );
+
+
+  // Provera da li baza postoji
+  if not FileExists(PutanjaBaze) then
+  begin
+    ShowMessage(
+      'Baza nije pronađena:' +
+      sLineBreak +
+      PutanjaBaze
+    );
+
+    Application.Terminate;
+    Exit;
+  end;
+
+
+  // Podešavanje SQLite konekcije
+  FDConnection1.Connected := False;
+
+  FDConnection1.Params.Clear;
+
+  FDConnection1.Params.Add(
+    'DriverID=SQLite'
+  );
+
+  FDConnection1.Params.Add(
+    'Database=' + PutanjaBaze
+  );
+
+  FDConnection1.LoginPrompt := False;
+
+
+  // Otvaranje konekcije
+  FDConnection1.Connected := True;
+
+
+  // FDQuery koristi ovu konekciju
+  FDQuery1.Connection :=
+    FDConnection1;
+
+end;
+
+
+// ======================================================
+// PRIJAVLJIVANJE KORISNIKA
+// ======================================================
+
+procedure TfrmLogin.btnPrijaviSeClick(Sender: TObject);
+var
+  HashLozinke: string;
+
+  KorisnikID: Integer;
+  KorisnickoIme: string;
+  ImeKorisnika: string;
+  Uloga: string;
+begin
+
+  // ====================================================
+  // PROVERA KORISNICKOG IMENA
+  // ====================================================
+
+  if Trim(edtKorisnickoIme.Text) = '' then
+  begin
+    ShowMessage(
+      'Unesite korisničko ime.'
+    );
+
+    edtKorisnickoIme.SetFocus;
+
+    Exit;
+  end;
+
+
+  // ====================================================
+  // PROVERA LOZINKE
+  // ====================================================
+
+  if edtLozinka.Text = '' then
+  begin
+    ShowMessage(
+      'Unesite lozinku.'
+    );
+
+    edtLozinka.SetFocus;
+
+    Exit;
+  end;
+
+
+  // ====================================================
+  // HASH LOZINKE
+  // ====================================================
+
+  HashLozinke :=
+    THashSHA2.GetHashString(
+      edtLozinka.Text
+    );
+
+
+  // ====================================================
+  // TRAZENJE KORISNIKA U BAZI
+  // ====================================================
+
+  FDQuery1.Close;
+
+  FDQuery1.SQL.Text :=
+    'SELECT ' +
+    'id, ' +
+    'username, ' +
+    'name, ' +
+    'role ' +
+    'FROM users ' +
+    'WHERE username = :username ' +
+    'AND password_hash = :password_hash ' +
+    'AND active = 1';
+
+
+  FDQuery1.ParamByName(
+    'username'
+  ).AsString :=
+    Trim(edtKorisnickoIme.Text);
+
+
+  FDQuery1.ParamByName(
+    'password_hash'
+  ).AsString :=
+    HashLozinke;
+
+
+  FDQuery1.Open;
+
+
+  // ====================================================
+  // POGRESNI PODACI
+  // ====================================================
+
+  if FDQuery1.IsEmpty then
+  begin
+    ShowMessage(
+      'Pogrešno korisničko ime ili lozinka.'
+    );
+
+    edtLozinka.Clear;
+    edtLozinka.SetFocus;
+
+    Exit;
+  end;
+
+
+  // ====================================================
+  // CITANJE PODATAKA PRIJAVLJENOG KORISNIKA
+  // ====================================================
+
+  KorisnikID :=
+    FDQuery1
+      .FieldByName('id')
+      .AsInteger;
+
+
+  KorisnickoIme :=
+    FDQuery1
+      .FieldByName('username')
+      .AsString;
+
+
+  ImeKorisnika :=
+    FDQuery1
+      .FieldByName('name')
+      .AsString;
+
+
+  Uloga :=
+    FDQuery1
+      .FieldByName('role')
+      .AsString;
+
+
+  // ====================================================
+  // OTVARANJE GLAVNE FORME
+  // ====================================================
+
+  // Ako glavna forma nije već napravljena
+  if not Assigned(frmGlavna) then
+  begin
+    frmGlavna :=
+      TfrmGlavna.Create(Application);
+  end;
+
+
+  // Prosleđujemo podatke prijavljenog korisnika
+  frmGlavna.PrijaviKorisnika(
+    KorisnikID,
+    KorisnickoIme,
+    ImeKorisnika,
+    Uloga
+  );
+
+
+  // Sakrivamo login
+  Self.Hide;
+
+end;
+
+end.
