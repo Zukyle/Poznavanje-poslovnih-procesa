@@ -14,7 +14,7 @@ uses
   Vcl.Forms,
   Vcl.Dialogs,
   Vcl.ExtCtrls,
-  Vcl.Buttons;
+  Vcl.Buttons, Vcl.StdCtrls, Vcl.Imaging.pngimage;
 
 type
   TfrmGlavna = class(TForm)
@@ -45,8 +45,14 @@ type
     btnOsnovniPodaci: TSpeedButton;
 
     btnOdjava: TSpeedButton;
-
-    Panel2: TPanel;
+    pnlNavbar: TPanel;
+    pnlLogo: TPanel;
+    imgLogo: TImage;
+    lblLogoText: TLabel;
+    imgAvatar: TImage;
+    Bevel1: TBevel;
+    shpRole: TShape;
+    lblRole: TLabel;
 
     procedure btnOdjavaClick(Sender: TObject);
 
@@ -69,6 +75,8 @@ type
     procedure btnMagacinClick(Sender: TObject); // NOVO
     procedure btnKorisniciClick(Sender: TObject); // NOVO
     procedure btnMaterijaliClick(Sender: TObject); // NOVO
+    procedure btnOsnovniPodaciClick(Sender: TObject); // NOVO
+    procedure btnDashboardClick(Sender: TObject); // NOVO
 
 
 
@@ -105,6 +113,8 @@ type
     FFraMagacin: TFrame; // NOVO
     FFraKorisnici: TFrame; // NOVO
     FFraMaterijali: TFrame; // NOVO
+    FFraOsnovniPodaci: TFrame; // NOVO
+    FFraDashboard: TFrame; // NOVO
 
     procedure SakrijSveOpcije;
     procedure PrimeniPravaPristupa;
@@ -156,7 +166,9 @@ uses
   uPrijemRobe,
   uMagacin,
   uKorisnici,
-  uMaterijali;
+  uMaterijali,
+  uOsnovniPodaci,
+  uDashboard;
 
 {$R *.dfm}
 
@@ -344,6 +356,30 @@ begin
   FUloga :=
     AUloga;
 
+    // NOVO
+  if SameText(FUloga, 'Menadzer') then
+    lblRole.Caption := 'Menadžer'
+  else if SameText(FUloga, 'Nabavka') then
+    lblRole.Caption := 'Služba nabavke'
+  else
+    lblRole.Caption := FUloga;
+
+  // ====================================================
+  // BOJE TEKSTA U NAVBARU
+  // #0432AB
+  // ====================================================
+
+  lblLogoText.StyleElements :=
+    lblLogoText.StyleElements - [seFont];
+
+  lblRole.StyleElements :=
+    lblRole.StyleElements - [seFont];
+
+  lblLogoText.Font.Color :=
+    RGB(4, 50, 171);
+
+  lblRole.Font.Color :=
+    RGB(4, 50, 171);
 
   // Sakrivamo ekran prethodnog korisnika
   SakrijSveFrameove;
@@ -400,6 +436,12 @@ begin
   btnMaterijali.OnClick :=
     btnMaterijaliClick;
 
+  btnOsnovniPodaci.OnClick :=
+    btnOsnovniPodaciClick;
+
+  btnDashboard.OnClick :=
+    btnDashboardClick;
+
 
   // ====================================================
   // NASLOV
@@ -414,6 +456,12 @@ begin
 
 
   Show;
+
+  // NOVO
+  // Nakon prijave automatski otvaramo Dashboard
+  btnDashboardClick(
+    btnDashboard
+  );
 
 end;
 
@@ -1171,5 +1219,143 @@ begin
   FFraKorisnici.BringToFront;
 
 end;
+
+// ============================================================
+// MATERIJALI
+// ============================================================
+
+procedure TfrmGlavna.btnMaterijaliClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraMaterijali) then
+  begin
+
+    FFraMaterijali :=
+      TfraMaterijali.Create(Self);
+
+    FFraMaterijali.Parent :=
+      pnlSadrzaj;
+
+    FFraMaterijali.Align :=
+      alClient;
+
+  end;
+
+
+  // Uvek učitamo najnovije podatke
+  TfraMaterijali(
+    FFraMaterijali
+  ).Osvezi;
+
+
+  FFraMaterijali.Visible :=
+    True;
+
+  FFraMaterijali.BringToFront;
+
+end;
+
+// ============================================================
+// OSNOVNI PODACI
+// ============================================================
+
+procedure TfrmGlavna.btnOsnovniPodaciClick(
+  Sender: TObject
+);
+begin
+
+  SakrijSveFrameove;
+
+
+  if not Assigned(FFraOsnovniPodaci) then
+  begin
+
+    FFraOsnovniPodaci :=
+      TfraOsnovniPodaci.Create(Self);
+
+    FFraOsnovniPodaci.Parent :=
+      pnlSadrzaj;
+
+    FFraOsnovniPodaci.Align :=
+      alClient;
+
+  end;
+
+
+  // Uvek učitamo najnovije podatke
+  TfraOsnovniPodaci(
+    FFraOsnovniPodaci
+  ).Osvezi;
+
+
+  FFraOsnovniPodaci.Visible :=
+    True;
+
+  FFraOsnovniPodaci.BringToFront;
+
+end;
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+
+procedure TfrmGlavna.btnDashboardClick(
+  Sender: TObject
+);
+begin
+
+  // Sakrivamo trenutno otvoreni frame
+  SakrijSveFrameove;
+
+
+  // Kreiramo Dashboard samo prvi put
+  if not Assigned(
+    FFraDashboard
+  ) then
+  begin
+
+    FFraDashboard :=
+      TfraDashboard.Create(Self);
+
+
+    FFraDashboard.Parent :=
+      pnlSadrzaj;
+
+
+    FFraDashboard.Align :=
+      alClient;
+
+  end;
+
+
+  // ==========================================================
+  // PROSLEĐUJEMO PRIJAVLJENOG KORISNIKA I ULOGU
+  // ==========================================================
+
+  TfraDashboard(
+    FFraDashboard
+  ).PrikaziZaKorisnika(
+    FKorisnikID,
+    FUloga
+  );
+
+
+  // ==========================================================
+  // PRIKAZ
+  // ==========================================================
+
+  FFraDashboard.Visible :=
+    True;
+
+
+  FFraDashboard.BringToFront;
+
+end;
+
 
 end.

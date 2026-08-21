@@ -55,28 +55,22 @@ type
     lblRole: TLabel;
 
     procedure btnOdjavaClick(Sender: TObject);
-
     procedure btnNoviZahtevClick(Sender: TObject);
     procedure btnMojiZahteviClick(Sender: TObject);
-
     procedure btnZahteviOdobrenjeClick(Sender: TObject);
     procedure btnSviZahteviClick(Sender: TObject);
-
     procedure btnOdobreniZahteviClick(Sender: TObject);
     procedure btnDobavljaciClick(Sender: TObject);
-
-    // NOVO - PONUDE
     procedure btnPonudeClick(Sender: TObject);
-
     procedure btnNarudzbeniceClick(Sender: TObject);
     procedure btnAktivneNabavkeClick(Sender: TObject);
     procedure btnOcekivaneIsporukeClick(Sender: TObject);
     procedure btnPrijemRobeClick(Sender: TObject);
-    procedure btnMagacinClick(Sender: TObject); // NOVO
-    procedure btnKorisniciClick(Sender: TObject); // NOVO
-    procedure btnMaterijaliClick(Sender: TObject); // NOVO
-    procedure btnOsnovniPodaciClick(Sender: TObject); // NOVO
-    procedure btnDashboardClick(Sender: TObject); // NOVO
+    procedure btnMagacinClick(Sender: TObject);
+    procedure btnKorisniciClick(Sender: TObject);
+    procedure btnMaterijaliClick(Sender: TObject);
+    procedure btnOsnovniPodaciClick(Sender: TObject);
+    procedure btnDashboardClick(Sender: TObject);
 
 
 
@@ -98,23 +92,20 @@ type
 
     FFraNoviZahtev: TFrame;
     FFraMojiZahtevi: TFrame;
-
     FFraZahteviOdobrenje: TFrame;
     FFraSviZahtevi: TFrame;
-
     FFraOdobreniZahtevi: TFrame;
     FFraDobavljaci: TFrame;
-
     FFraPonude: TFrame;
     FFraNarudzbenice: TFrame;
     FFraAktivneNabavke: TFrame;
     FFraOcekivaneIsporuke: TFrame;
     FFraPrijemRobe: TFrame;
-    FFraMagacin: TFrame; // NOVO
-    FFraKorisnici: TFrame; // NOVO
-    FFraMaterijali: TFrame; // NOVO
-    FFraOsnovniPodaci: TFrame; // NOVO
-    FFraDashboard: TFrame; // NOVO
+    FFraMagacin: TFrame;
+    FFraKorisnici: TFrame;
+    FFraMaterijali: TFrame;
+    FFraOsnovniPodaci: TFrame;
+    FFraDashboard: TFrame;
 
     procedure SakrijSveOpcije;
     procedure PrimeniPravaPristupa;
@@ -129,17 +120,14 @@ type
       const AUloga: string
     );
 
-    // NOVO
     procedure OtvoriPonudeZaZahtev(
       AZahtevID: Integer
     );
 
-    // NOVO
     procedure OtvoriPrijemRobeZaNarudzbenicu(
       ANarudzbenicaID: Integer
     );
 
-        // NOVO
     procedure OtvoriNarudzbeniceZaZahtev(AZahtevID: Integer);
 
   end;
@@ -157,8 +145,6 @@ uses
   uSviZahtevi,
   uOdobreniZahtevi,
   uDobavljaci,
-
-  // NOVO
   uPonude,
   uNarudzbenice,
   uAktivneNabavke,
@@ -239,8 +225,6 @@ begin
 
   SakrijSveOpcije;
 
-
-  // Dashboard vidi svako
   btnDashboard.Visible := True;
 
 
@@ -356,7 +340,6 @@ begin
   FUloga :=
     AUloga;
 
-    // NOVO
   if SameText(FUloga, 'Menadzer') then
     lblRole.Caption := 'Menadžer'
   else if SameText(FUloga, 'Nabavka') then
@@ -411,7 +394,6 @@ begin
   btnDobavljaci.OnClick :=
     btnDobavljaciClick;
 
-  // NOVO
   btnPonude.OnClick :=
     btnPonudeClick;
 
@@ -457,7 +439,6 @@ begin
 
   Show;
 
-  // NOVO
   // Nakon prijave automatski otvaramo Dashboard
   btnDashboardClick(
     btnDashboard
